@@ -48,6 +48,10 @@ The approved self-healing run added `closing_date_text`, returned `null` when no
 
 Bright Data Scraper Studio is used to generate and approve collector code, including the demonstrated self-healing repair. ApplySignal's normalization, Reciprocity Gap labels, lifecycle diffs, and bounded repost inferences are deterministic application code. The system does not use an LLM to invent employer facts, collect candidate values, or submit applications.
 
+## Credit-aware collection policy
+
+Collector creation and live runs are paid external actions. The project keeps one completed collector per target, prefers scoped detail pages or small boards when full-board generation is unreliable, applies a minimum-row guard, and does not rerun a target solely for confirmation. A run handed to Bright Data batch mode is treated as pending until output is returned; it is not retriggered automatically after a local poll is stopped.
+
 ## Evidence boundary
 
 Live and fixture data are separate. Missing salary, deadlines, or application fields remain unknown; they are not converted to negative claims. The app does not submit applications or access login-protected data.

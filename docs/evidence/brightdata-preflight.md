@@ -36,6 +36,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Meesho retry | `c_mt0jywoc3netn7272` | Narrower visible-card schema still failed during intent analysis at attempt 22 | Unresolved; no live output claimed; half-built collector requires manual UI deletion if desired |
 | Postman branded careers | `c_mt0hhp8o2dj4euge69` | Generation remained in code/preview polling when bounded run was stopped | Unresolved; no live output claimed |
 | Postman Greenhouse board | `c_mt0jgbmgtpeo9ghcx` | Generation reached preview picker at attempt 180 when bounded polling stopped | Unresolved; no live output claimed |
+| Postman Greenhouse board retry | `c_mt0kenri1czi6msxio` / batch `j_mt0kix8hl18ggr55o` | Collector completed, but the run hit the realtime page limit and entered batch polling; local polling stopped at attempt 13 before output | Unresolved; no rows persisted and no rerun planned without a credit decision |
 | CRED openings | `c_mt0hphi210sst7z27` | Generation reached preview-picker but remained unresolved after bounded polling | Unresolved; no live output claimed |
 | CRED Lever board | `c_mt0jsv3s22rjyq5w83` | Direct public board generation reached code generation at attempt 184 when bounded polling stopped | Unresolved; no live output claimed |
 | Razorpay branded careers | `c_mt0huks12jww1ro77d` | Completed and returned the public Greenhouse board URL | Partial success; branded-page routing observed, but not a jobs dataset |
