@@ -30,6 +30,23 @@ export interface DistributionalHealthComparison {
   fieldCoverageDelta: Record<string, number>;
 }
 
+export interface HealDiagnosis {
+  status: "no_action" | "review_required";
+  collectorId: string;
+  sourceId: string;
+  changedFields: string[];
+  reasons: string[];
+  prompt: string | null;
+  automaticHeal: false;
+}
+
+export interface HealDiagnosisInput {
+  collectorId: string;
+  sourceId: string;
+  baseline: DistributionalHealthSnapshot;
+  current: DistributionalHealthSnapshot;
+}
+
 const present = (value: unknown): boolean => value !== null && value !== undefined && String(value).trim().length > 0;
 const locationPattern = /\b(?:bengaluru|bangalore|pune|mumbai|hyderabad|delhi|london|remote|india|united states|new york|san francisco)\b/i;
 const titlePattern = /\b(?:engineer|developer|designer|manager|scientist|analyst|architect|director|intern|counsel|recruiter)\b/i;
@@ -87,4 +104,29 @@ export function compareDistributionalHealth(current: DistributionalHealthSnapsho
     if (Math.abs(delta) >= 0.25) anomalies.push(`field coverage changed materially: ${field}`);
   }
   return { status: anomalies.length === 0 ? "stable" : "changed", anomalies, requiresReview: anomalies.length > 0, automaticHeal: false, recordCountDeltaRatio, fieldCoverageDelta };
+}
+
+const percent = (value: number): string => `${Math.round(value * 100)}%`;
+
+export function buildHealDiagnosis(input: HealDiagnosisInput): HealDiagnosis {
+  const comparison = compareDistributionalHealth(input.current, input.baseline);
+  const changedFields = Object.entries(comparison.fieldCoverageDelta)
+    .filter(([, delta]) => Math.abs(delta) >= 0.25)
+    .map(([field]) => field);
+  if (!comparison.requiresReview) {
+    return { status: "no_action", collectorId: input.collectorId, sourceId: input.sourceId, changedFields: [], reasons: [], prompt: null, automaticHeal: false };
+  }
+
+  const recordReason = comparison.recordCountDeltaRatio !== null && comparison.recordCountDeltaRatio < 0
+    ? `record count changed from ${input.baseline.recordCount} to ${input.current.recordCount}`
+    : null;
+  const fieldReasons = changedFields.map((field) => `field ${field} coverage changed from ${percent(input.baseline.fieldCoverage[field] ?? 0)} to ${percent(input.current.fieldCoverage[field] ?? 0)}`);
+  const reasons = [recordReason, ...fieldReasons].filter((reason): reason is string => Boolean(reason));
+  const prompt = [
+    `Collector ${input.collectorId} for source ${input.sourceId} requires review before healing.`,
+    `Observed extraction drift: ${reasons.join("; ")}.`,
+    `Restore the affected fields while you preserve the existing output schema and healthy title/identity extraction.`,
+    `Return a preview for validation; do not approve or rerun automatically. Human approval is required after semantic and cardinality checks.`,
+  ].join(" ");
+  return { status: "review_required", collectorId: input.collectorId, sourceId: input.sourceId, changedFields, reasons, prompt, automaticHeal: false };
 }

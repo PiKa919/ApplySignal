@@ -72,6 +72,8 @@ The collector CLI also skips a successful run for the same collector/source with
 
 Ingestion applies a structural and semantic health gate after envelope expansion: minimum cardinality, required-field coverage, duplicate identity detection, expected URL-host checks, obvious title/location swaps, and impossible exact date ordering. A suspicious result is persisted as `quarantined` with its health report and produces no job observations. `compareDistributionalHealth` reports baseline drift as review evidence; distribution changes do not trigger automatic healing by themselves.
 
+When a baseline/current distribution comparison requires review, `buildHealDiagnosis` in `src/collectors/health.ts` generates a field-specific, review-gated prompt containing the affected coverage changes and record-count drift. It explicitly preserves the existing output schema and requires human approval after preview validation. It does not invoke `brightdata scraper heal`, approve a collector, or rerun a paid job.
+
 Every catalog entry also declares its observation scope (`all_jobs`, `subset`, or `talent_pool`, plus geography and career filters). Health and cardinality claims are interpreted within that scope; a scoped zero is not treated as a failed full-board scrape.
 
 ## Evidence boundary
