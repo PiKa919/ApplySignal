@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "test": "bun test",
-    "dev": "bun run src/index.ts"
+    "dev": "bun run src/index.ts",
+    "seed:fixture": "bun run src/cli/seed-fixture.ts"
   }
 }
