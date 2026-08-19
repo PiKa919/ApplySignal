@@ -15,9 +15,16 @@ export interface IngestSummary {
 }
 
 export function ingestCollectorResult(db: Database, result: CollectorRunResult, dataMode: "live" | "fixture" = "live"): IngestSummary {
-  if (result.status !== "success") throw new Error(`collector failed: ${result.stderr || "unknown Bright Data error"}`);
-  if (result.rows.length < result.expectedMinimumRows) throw new Error(`cardinality check failed: expected at least ${result.expectedMinimumRows}, received ${result.rows.length}`);
-  saveScrapeRun(db, { runId: result.runId, collectorId: result.collectorId, sourceId: result.sourceId, observedAt: result.observedAt, status: result.status, rowCount: result.rows.length, expectedMinimumRows: result.expectedMinimumRows, rawOutput: result.rawOutput });
+  const run = (status: string) => saveScrapeRun(db, { runId: result.runId, collectorId: result.collectorId, sourceId: result.sourceId, observedAt: result.observedAt, status, rowCount: result.rows.length, expectedMinimumRows: result.expectedMinimumRows, rawOutput: result.rawOutput });
+  if (result.status !== "success") {
+    run("failed");
+    throw new Error(`collector failed: ${result.stderr || "unknown Bright Data error"}`);
+  }
+  if (result.rows.length < result.expectedMinimumRows) {
+    run("cardinality_failed");
+    throw new Error(`cardinality check failed: expected at least ${result.expectedMinimumRows}, received ${result.rows.length}`);
+  }
+  run(result.status);
   const observationIds = result.rows.map((row) => {
     const observation = normalizeJobObservation(row, { sourceId: result.sourceId, sourceUrl: result.sourceUrl ?? String(row.source_url ?? ""), observedAt: result.observedAt });
     saveObservation(db, { ...observation, dataMode });
