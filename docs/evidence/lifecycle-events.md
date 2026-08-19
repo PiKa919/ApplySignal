@@ -1,5 +1,7 @@
 # Lifecycle event evidence
 
+`demo-lifecycle` is **SIMULATED LIFECYCLE TEST DATA** for the fictional controlled career site, not a historical claim about a real employer.
+
 `job_observations` remain the observed facts. Each successful ingestion additionally appends a `posting_events` record containing:
 
 - the source and lifecycle state;

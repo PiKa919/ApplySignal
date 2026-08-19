@@ -30,6 +30,7 @@ export interface HealthDemoEvidence {
 const snapshot = (health: CollectorHealthReport) => ({
   recordCount: health.recordCount,
   fieldCoverage: health.fieldCoverage,
+  distributions: health.distributions,
 });
 
 export function buildHealthDemoEvidence(input: {

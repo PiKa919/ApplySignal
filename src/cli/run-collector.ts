@@ -16,6 +16,10 @@ export function collectorRequestFromEnv(env: CollectorEnvironment): CollectorReq
   const requiredFields = (env.BRIGHTDATA_REQUIRED_FIELDS ?? "").split(",").map((field) => field.trim()).filter(Boolean);
   const minimumCoverage = env.BRIGHTDATA_MIN_COVERAGE === undefined || env.BRIGHTDATA_MIN_COVERAGE.trim() === "" ? undefined : Number(env.BRIGHTDATA_MIN_COVERAGE);
   if (minimumCoverage !== undefined && (!Number.isFinite(minimumCoverage) || minimumCoverage < 0 || minimumCoverage > 1)) throw new Error("BRIGHTDATA_MIN_COVERAGE must be between 0 and 1");
+  const scopeKind = env.BRIGHTDATA_SCOPE_KIND?.trim() || "all_jobs";
+  if (scopeKind && !["all_jobs", "subset", "talent_pool"].includes(scopeKind)) throw new Error("BRIGHTDATA_SCOPE_KIND must be all_jobs, subset, or talent_pool");
+  const emptyState = env.BRIGHTDATA_EMPTY_STATE_VERIFIED?.trim();
+  if (emptyState && emptyState !== "true" && emptyState !== "false") throw new Error("BRIGHTDATA_EMPTY_STATE_VERIFIED must be true or false");
   return {
     collectorId,
     sourceId,
@@ -24,8 +28,11 @@ export function collectorRequestFromEnv(env: CollectorEnvironment): CollectorReq
     expectedMinimumRows: minimum,
     ...(requiredFields.length > 0 ? { requiredFields } : {}),
     ...(env.BRIGHTDATA_IDENTITY_FIELD?.trim() ? { identityField: env.BRIGHTDATA_IDENTITY_FIELD.trim() } : {}),
+    ...(env.BRIGHTDATA_URL_FIELD?.trim() ? { urlField: env.BRIGHTDATA_URL_FIELD.trim() } : {}),
     ...(env.BRIGHTDATA_EXPECTED_HOST?.trim() ? { expectedHost: env.BRIGHTDATA_EXPECTED_HOST.trim() } : {}),
     ...(minimumCoverage !== undefined ? { minimumCoverage } : {}),
+    scopeKind: scopeKind as CollectorRequest["scopeKind"],
+    ...(emptyState ? { emptyStateVerified: emptyState === "true" } : {}),
   };
 }
 

@@ -13,7 +13,7 @@ test("builds a collector request from non-secret environment configuration", () 
     BRIGHTDATA_IDENTITY_FIELD: "source_job_id",
     BRIGHTDATA_EXPECTED_HOST: "example.test",
     BRIGHTDATA_MIN_COVERAGE: "0.8",
-  })).toEqual({ collectorId: "c_test", sourceId: "zfh", sourceUrl: "https://example.test/jobs", url: "https://example.test/jobs", expectedMinimumRows: 3, requiredFields: ["source_job_id", "title", "location"], identityField: "source_job_id", expectedHost: "example.test", minimumCoverage: 0.8 });
+  })).toEqual({ collectorId: "c_test", sourceId: "zfh", sourceUrl: "https://example.test/jobs", url: "https://example.test/jobs", expectedMinimumRows: 3, requiredFields: ["source_job_id", "title", "location"], identityField: "source_job_id", expectedHost: "example.test", minimumCoverage: 0.8, scopeKind: "all_jobs" });
 });
 
 test("rejects a collector command without an ID", () => {
@@ -40,4 +40,18 @@ test("skips a recent failed or quarantined run unless an explicit force flag is 
 
 test("rejects an invalid field-coverage threshold", () => {
   expect(() => collectorRequestFromEnv({ BRIGHTDATA_COLLECTOR_ID: "c_test", BRIGHTDATA_SOURCE_ID: "zfh", BRIGHTDATA_MIN_COVERAGE: "1.2" })).toThrow("BRIGHTDATA_MIN_COVERAGE");
+});
+
+test("builds scope-aware health configuration from environment", () => {
+  expect(collectorRequestFromEnv({
+    BRIGHTDATA_COLLECTOR_ID: "c_test",
+    BRIGHTDATA_SOURCE_ID: "razorpay-tech",
+    BRIGHTDATA_SCOPE_KIND: "subset",
+    BRIGHTDATA_EMPTY_STATE_VERIFIED: "true",
+    BRIGHTDATA_URL_FIELD: "url",
+  })).toMatchObject({
+    scopeKind: "subset",
+    emptyStateVerified: true,
+    urlField: "url",
+  });
 });

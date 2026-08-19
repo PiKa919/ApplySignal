@@ -6,8 +6,12 @@ export interface CollectorRequest {
   expectedMinimumRows?: number;
   requiredFields?: string[];
   identityField?: string;
+  urlField?: string;
   expectedHost?: string;
   minimumCoverage?: number;
+  scopeKind?: "all_jobs" | "subset" | "talent_pool";
+  emptyStateVerified?: boolean;
+  pagination?: import("./health").PaginationHealthEvidence;
 }
 
 export interface CollectorTransportEvidence {
@@ -32,8 +36,12 @@ export interface CollectorRunResult {
   expectedMinimumRows: number;
   requiredFields?: string[];
   identityField?: string;
+  urlField?: string;
   expectedHost?: string;
   minimumCoverage?: number;
+  scopeKind?: "all_jobs" | "subset" | "talent_pool";
+  emptyStateVerified?: boolean;
+  pagination?: import("./health").PaginationHealthEvidence;
   transport?: CollectorTransportEvidence;
 }
 
@@ -54,8 +62,8 @@ export async function runBrightDataCollector(request: CollectorRequest): Promise
       const parsed: unknown = JSON.parse(stdout);
       rows = Array.isArray(parsed) ? parsed as Record<string, unknown>[] : [parsed as Record<string, unknown>];
     } catch {
-    return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: "failed", rawOutput: stdout, stderr: `${stderr}\nBright Data output was not valid JSON.`, rows: [], expectedMinimumRows: request.expectedMinimumRows ?? 1, requiredFields: request.requiredFields, identityField: request.identityField, expectedHost: request.expectedHost, minimumCoverage: request.minimumCoverage };
+    return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: "failed", rawOutput: stdout, stderr: `${stderr}\nBright Data output was not valid JSON.`, rows: [], expectedMinimumRows: request.expectedMinimumRows ?? 1, requiredFields: request.requiredFields, identityField: request.identityField, urlField: request.urlField, expectedHost: request.expectedHost, minimumCoverage: request.minimumCoverage, scopeKind: request.scopeKind, emptyStateVerified: request.emptyStateVerified, pagination: request.pagination };
     }
   }
-  return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: exitCode === 0 ? "success" : "failed", rawOutput: stdout, stderr, rows, expectedMinimumRows: request.expectedMinimumRows ?? 1, requiredFields: request.requiredFields, identityField: request.identityField, expectedHost: request.expectedHost, minimumCoverage: request.minimumCoverage };
+  return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: exitCode === 0 ? "success" : "failed", rawOutput: stdout, stderr, rows, expectedMinimumRows: request.expectedMinimumRows ?? 1, requiredFields: request.requiredFields, identityField: request.identityField, urlField: request.urlField, expectedHost: request.expectedHost, minimumCoverage: request.minimumCoverage, scopeKind: request.scopeKind, emptyStateVerified: request.emptyStateVerified, pagination: request.pagination };
 }

@@ -57,6 +57,14 @@ test("dashboard renders structural health state for collector runs", async () =>
   expect(await response.text()).toContain("healthStatus");
 });
 
+test("dashboard exposes health evidence details for source runs", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(body).toContain("HEALTH EVIDENCE");
+  expect(body).toContain("duplicateUrlCount");
+  expect(body).toContain("paginationErrors");
+});
+
 test("dashboard labels last-known-good evidence", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   expect(await response.text()).toContain("LAST KNOWN GOOD");

@@ -9,6 +9,7 @@ const compareRun = document.querySelector<HTMLButtonElement>("#compare-run")!;
 const compareResult = document.querySelector<HTMLElement>("#compare-result")!;
 
 type ApplicationObservation = { accountGate: boolean | null; resumeRequired: boolean | null; requiredFieldCount: number; optionalFieldCount: number; unknownFieldCount: number; customQuestionCount: number; longAnswerCount: number; attachmentCount: number; manualHistoryFields: string[] };
+type HealthReport = { errors?: string[]; duplicateIdentityCount?: number; duplicateUrlCount?: number; paginationErrors?: string[]; distributions?: Record<string, Record<string, number>> };
 type Job = { observationId: string; title: string | null; location: string | null; dataMode: string; sourceConfidence: number | null; flags: { explicitEvergreen: boolean; evergreenLike: boolean; talentPool: boolean; multipleOpenings: boolean }; applicationObservation?: ApplicationObservation | null; analysis: { gapLabel: string; explanation: string; requestedFieldCount: number; disclosedCount: number; resumeReentryFieldCount: number; resumeReentryLabel: string; lifecycleState: string; freshness: { precision: string; label: string; sourcePublishedAt: string | null; ageDays: number | null; ageMinDays: number | null; firstSeenAt: string } } };
 
 const esc = (value: unknown) => String(value ?? "Unknown").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]!));
@@ -45,7 +46,7 @@ async function renderComparison() {
 async function load() {
   const [summary, jobResponse] = await Promise.all([fetch("/api/summary").then((r) => r.json()), fetch("/api/jobs").then((r) => r.json())]);
   const jobsData = jobResponse as Job[];
-  const runs = (summary.runs ?? []) as Array<{ sourceId: string; runKind: string; status: string; healthStatus: string; rowCount: number; observedAt: string }>;
+  const runs = (summary.runs ?? []) as Array<{ sourceId: string; runKind: string; status: string; healthStatus: string; rowCount: number; observedAt: string; healthReport?: HealthReport }>;
   const lastKnownGood = (summary.lastKnownGood ?? []) as Array<{ sourceId: string; runKind: string; runId: string; rowCount: number; observedAt: string }>;
   const validationResults = (summary.validationResults ?? []) as Array<{ sourceId: string; oracleId: string; status: string; agreementRate: number | null; matchedCount: number; oracleCount: number }>;
   const healEvents = (summary.healEvents ?? []) as Array<{ sourceId: string; collectorId: string; reason: string; approved: boolean | null; repairedRunId: string | null; createdAt?: string }>;
@@ -54,7 +55,16 @@ async function load() {
   const boardSources = catalog.filter((source) => source.status === "live");
   const scopedSources = catalog.filter((source) => source.status === "live_scoped");
   const cards = catalog.map((source) => `<div class="health-card ${esc(source.status)}"><div class="health-source">${esc(source.name)}</div><div class="health-meta">${esc(source.status)} · scope ${esc(source.scope.boardKind)} · ${esc(source.note)}</div></div>`);
-  const runCards = runs.map((run) => `<div class="health-card ${esc(run.status)}"><div class="health-source">Run: ${esc(run.sourceId)} · ${esc(run.runKind)}</div><div class="health-meta">${esc(run.status)} · healthStatus ${esc(run.healthStatus)} · ${esc(run.rowCount)} rows · ${esc(new Date(run.observedAt).toLocaleString())}</div></div>`);
+  const runCards = runs.map((run) => {
+    const report = run.healthReport ?? {};
+    const evidence = [
+      `duplicateIdentityCount=${report.duplicateIdentityCount ?? 0}`,
+      `duplicateUrlCount=${report.duplicateUrlCount ?? 0}`,
+      `paginationErrors=${report.paginationErrors?.length ?? 0}`,
+      ...(report.errors ?? []),
+    ];
+    return `<div class="health-card ${esc(run.status)}"><div class="health-source">Run: ${esc(run.sourceId)} · ${esc(run.runKind)}</div><div class="health-meta">${esc(run.status)} · healthStatus ${esc(run.healthStatus)} · ${esc(run.rowCount)} rows · ${esc(new Date(run.observedAt).toLocaleString())}</div><div class="health-meta"><span class="detail-label">HEALTH EVIDENCE</span> ${esc(evidence.join(" · "))}</div></div>`;
+  });
   const lastKnownGoodCards = lastKnownGood.map((run) => `<div class="health-card success"><div class="health-source">LAST KNOWN GOOD · ${esc(run.sourceId)} · ${esc(run.runKind)}</div><div class="health-meta">${esc(run.rowCount)} rows · run ${esc(run.runId)} · ${esc(new Date(run.observedAt).toLocaleString())}</div></div>`);
   const validationCards = validationResults.map((result) => `<div class="health-card ${esc(result.status)}"><div class="health-source">Oracle: ${esc(result.sourceId)}</div><div class="health-meta">${esc(result.status)} · ${result.agreementRate === null ? "insufficient data" : `${result.matchedCount}/${result.oracleCount} IDs matched (${Math.round(result.agreementRate * 100)}%)`} · ${esc(result.oracleId)}</div></div>`);
   const healCards = healEvents.map((event) => `<div class="health-card ${event.approved === true ? "success" : event.approved === false ? "failed" : "live_scoped"}"><div class="health-source">HEAL REVIEW · ${esc(event.sourceId)}</div><div class="health-meta">${event.approved === null ? "awaiting approval" : event.approved ? "approved" : "rejected"} · ${esc(event.reason)} · collector ${esc(event.collectorId)}${event.repairedRunId ? ` · repaired run ${esc(event.repairedRunId)}` : ""}</div></div>`);

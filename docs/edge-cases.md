@@ -21,6 +21,10 @@ ApplySignal treats missing information as unknown and keeps scraper reliability 
 | Apply page redirects or is closed | Validate the destination and expose `APPLICATION_CLOSED`/unknown evidence rather than submitting. |
 | Board count collapses or required-field coverage drops | Quarantine the run and retain last-known-good observations. |
 | Duplicate IDs or premature pagination | Quarantine or report structural health failure before business events are created. |
+| Repeated listing URLs | Quarantine the run even when no source identity field is available. |
+| Empty all-jobs board without explicit empty-state evidence | Quarantine before treating zero as a real catalog state. |
+| Verified empty subset or talent-pool scope | Allow zero rows within that declared scope. |
+| Inverted salary range | Quarantine the run as a semantic extraction error. |
 | HTTP 200 block/CAPTCHA page | Treat explicit block evidence as transport failure. |
 | Semantic title/location swap | Quarantine even when both fields are non-empty. |
 | Distributional drift alone | Require review evidence; never trigger automatic healing. |

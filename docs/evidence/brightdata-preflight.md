@@ -10,7 +10,7 @@
 
 `brightdata pipelines list --json` returned the built-in pipeline catalog. It included `linkedin_job_listings` and other platform-specific pipelines, but no candidate-specific pipeline for Visa, Cadence, BrowserStack, Meesho, Zerodha Fund House, CRED, Postman, or Razorpay.
 
-This is evidence about the authenticated CLI pipeline catalog, not proof that Bright Data's broader 660+ web-scraper library has no matching template. The final submission must retain the source-level Marketplace/library lookup evidence before claiming a target is uncovered.
+This is evidence about the authenticated CLI pipeline catalog, not proof that Bright Data's broader 660+ web-scraper library has no matching template. The installed CLI exposes `pipelines list`, but it does not expose a Scrapers Library/Marketplace search command; `brightdata scraper --help` exposes only `create`, `run`, `heal`, and `approve`. Bright Data's official documentation says the Scrapers Library is browsed from the web dashboard and that Scraper Studio is for targets not found in the library ([library quickstart](https://docs.brightdata.com/datasets/scrapers/scrapers-library/quickstart), [Scraper Studio FAQ](https://docs.brightdata.com/datasets/scraper-studio/faqs)). The public FAQ page did not match Visa, Cadence, BrowserStack, Meesho, Zerodha Fund House, CRED, Postman, or Razorpay by name, but that page is not a substitute for an authenticated per-target dashboard lookup. The final submission must retain source-level Marketplace/library evidence before claiming a target is uncovered.
 
 ## Candidate decisions
 
