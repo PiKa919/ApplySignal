@@ -16,6 +16,8 @@ Its central view is the Reciprocity Gap: an explainable comparison between discl
 
 Application analysis also exposes a Resume Re-entry Tax: the count and severity of public employment, education, compensation-history, experience, and current-employer fields requested in addition to a resume.
 
+The application detail view also stores a structured public-form observation: account-gate state when observable, resume requirement, required/optional/unknown counts, custom-question and long-answer counts, attachments, and deduplicated manual-history labels. It never stores candidate-entered values. The current Zerodha application observation is documented in `docs/evidence/application-observation-2026-08-20.md`.
+
 Posting flags distinguish `TALENT_POOL`, `EXPLICIT_EVERGREEN`, and `EVERGREEN_LIKE` patterns. These are deterministic labels from observed title/description text, not claims that an ordinary listing is stale, fraudulent, or a single vacancy.
 
 ## Run locally
@@ -56,6 +58,16 @@ BRIGHTDATA_MIN_COVERAGE=0.75 \
 bun run run:collector
 ```
 
+For a public application form, use the separate bounded command. It shares the cooldown ledger, records `runKind: application`, redacts raw output, and attaches only visible field metadata to an existing observation:
+
+```bash
+BRIGHTDATA_APPLICATION_COLLECTOR_ID=<application-collector-id> \
+BRIGHTDATA_APPLICATION_SOURCE_ID=zfh \
+BRIGHTDATA_APPLICATION_TARGET_URL=https://careers.example.com/jobs/role/apply \
+BRIGHTDATA_APPLICATION_OBSERVATION_ID=<existing-observation-id> \
+bun run run:application
+```
+
 The first live collector was created in Scraper Studio for Zerodha Fund House. The live run returned 13 listing observations. A second Scraper Studio collector inspected the public Senior Backend Engineer application form and returned 17 visible fields without submitting the form or collecting candidate values. The Palantir Lever fallback collector completed through a Bright Data batch handoff and returned 307 public listing observations. Razorpay returned 26 rows from its direct Greenhouse board, and Visa now has one explicitly scoped live Workday detail observation. `run:collector` applies the minimum-row cardinality guard and persists the run before the dashboard reads it.
 
 The approved self-healing run added `closing_date_text`, returned `null` when no public deadline was visible, and preserved the existing listing fields. Evidence is documented in `docs/evidence/`.
@@ -64,9 +76,41 @@ The approved self-healing run added `closing_date_text`, returned `null` when no
 
 When a source has an independent public ATS representation, compare cached scraper and oracle job IDs locally with `compareJobIds` from `src/domain/validation.ts`. The result records deduplicated counts, matched IDs, missing and unexpected IDs, and an explicit `agree`, `mismatch`, or `insufficient_data` status. Results are persisted separately from collector health and exposed through `/api/summary`; no additional Bright Data request is needed to repeat a comparison.
 
+## Product screens
+
+- **Explorer:** browse observations with freshness, Reciprocity Gap, lifecycle, and source-confidence signals kept independent.
+- **Compare:** inspect two observations side by side before spending application time.
+- **Job Evidence:** expand source URLs, raw provenance, application burden, structured changes, and bounded inferences.
+- **Source Health:** inspect catalog scope, run status, quarantine evidence, validation results, and last-known-good boundaries.
+
+The dashboard deliberately avoids a universal “worth applying” score. An old listing is not automatically fraudulent, a difficult application is not automatically bad, and scraper confidence is not an employer attribute.
+
+## Structured output
+
+The public application observation contract is illustrated in [`docs/evidence/example-structured-output.json`](docs/evidence/example-structured-output.json). The domain model stores aggregate form metadata and visible labels only; it does not store candidate-entered values. The live Zerodha example is documented in [`docs/evidence/application-observation-2026-08-20.md`](docs/evidence/application-observation-2026-08-20.md).
+
+## Reliability and self-healing
+
+The pipeline is intentionally ordered:
+
+```text
+Bright Data run → transport/structural/semantic health gate
+  → quarantine on failure → retain last-known-good observations
+  → review-gated diagnosis → human-reviewed heal preview
+  → approved rerun → validate → commit
+```
+
+`buildHealDiagnosis` generates a field-specific prompt from observed drift but never invokes `brightdata scraper heal`, approves a preview, or reruns a paid job automatically. The current evidence is in [`docs/evidence/health-contract.md`](docs/evidence/health-contract.md) and [`docs/evidence/heal-diagnosis.md`](docs/evidence/heal-diagnosis.md).
+
+## Edge cases and limitations
+
+The supported edge-case contract is listed in [`docs/edge-cases.md`](docs/edge-cases.md). Live coverage is not claimed for unresolved or failed-generation targets; the source catalog exposes those states explicitly. Greenhouse/Lever representations are validation or fallback sources, not proof that every branded target is scrapeable.
+
 ## AI use disclosure
 
 Bright Data Scraper Studio is used to generate and approve collector code, including the demonstrated self-healing repair. ApplySignal's normalization, Reciprocity Gap labels, lifecycle diffs, and bounded repost inferences are deterministic application code. The system does not use an LLM to invent employer facts, collect candidate values, or submit applications.
+
+Codex/ChatGPT was used for development assistance, debugging, implementation review, and test generation. Architecture decisions, collector behavior, validation rules, and submitted code remain participant-reviewed. Bright Data Scraper Studio's AI workflow was used at the collector boundary, including the documented review-gated healing flow.
 
 ## Credit-aware collection policy
 

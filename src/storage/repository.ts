@@ -1,6 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { JobObservation } from "../domain/observations";
 import type { ApplicationFieldObservation } from "../domain/reciprocity";
+import type { ApplicationObservationSummary } from "../domain/application";
 import type { LifecycleState, PostingInference } from "../domain/lifecycle";
 import type { JobIdComparison } from "../domain/validation";
 import { classifyPostingFlags } from "../domain/normalize";
@@ -13,6 +14,7 @@ export interface ScrapeRunRecord {
   sourceId: string;
   observedAt: string;
   status: string;
+  runKind?: "listing" | "application";
   rowCount: number;
   expectedMinimumRows: number | null;
   healthStatus?: "healthy" | "quarantined";
@@ -26,6 +28,7 @@ export interface ScrapeRunHealth {
   sourceId: string;
   observedAt: string;
   status: string;
+  runKind: "listing" | "application";
   rowCount: number;
   expectedMinimumRows: number | null;
   healthStatus: "healthy" | "quarantined";
@@ -34,14 +37,14 @@ export interface ScrapeRunHealth {
 
 export function saveScrapeRun(db: Database, run: ScrapeRunRecord): void {
   const statement = db.query(`INSERT OR REPLACE INTO scrape_runs
-    (run_id, collector_id, source_id, observed_at, status, row_count, expected_minimum_rows, health_status, health_report, raw_output)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
-  statement.run(run.runId, run.collectorId, run.sourceId, run.observedAt, run.status, run.rowCount, run.expectedMinimumRows, run.healthStatus ?? "healthy", JSON.stringify(run.healthReport ?? {}), run.rawOutput);
+    (run_id, collector_id, source_id, observed_at, status, run_kind, row_count, expected_minimum_rows, health_status, health_report, raw_output)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  statement.run(run.runId, run.collectorId, run.sourceId, run.observedAt, run.status, run.runKind ?? "listing", run.rowCount, run.expectedMinimumRows, run.healthStatus ?? "healthy", JSON.stringify(run.healthReport ?? {}), run.rawOutput);
 }
 
 export function listScrapeRuns(db: Database): ScrapeRunHealth[] {
   const rows = db.query(`SELECT run_id as runId, collector_id as collectorId, source_id as sourceId,
-    observed_at as observedAt, status, row_count as rowCount, expected_minimum_rows as expectedMinimumRows,
+    observed_at as observedAt, status, run_kind as runKind, row_count as rowCount, expected_minimum_rows as expectedMinimumRows,
     health_status as healthStatus, health_report as healthReport
     FROM scrape_runs ORDER BY observed_at DESC`).all() as Array<ScrapeRunHealth & { healthReport: string | Record<string, unknown> }>;
   return rows.map((row) => ({ ...row, healthReport: typeof row.healthReport === "string" ? JSON.parse(row.healthReport) : row.healthReport }));
@@ -149,6 +152,50 @@ export function listApplicationFields(db: Database, observationId: string): Appl
   return rows.map((row) => ({ label: row.label, category: row.category, required: row.required === null ? null : row.required === 1 }));
 }
 
+export function saveApplicationObservation(db: Database, observationId: string, summary: ApplicationObservationSummary, observedAt = new Date().toISOString()): void {
+  db.query(`INSERT OR REPLACE INTO application_observations
+    (observation_id, account_gate, resume_required, required_field_count, optional_field_count,
+     unknown_field_count, custom_question_count, long_answer_count, attachment_count,
+     manual_history_fields_json, observed_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      observationId,
+      summary.accountGate === null ? null : Number(summary.accountGate),
+      summary.resumeRequired === null ? null : Number(summary.resumeRequired),
+      summary.requiredFieldCount,
+      summary.optionalFieldCount,
+      summary.unknownFieldCount,
+      summary.customQuestionCount,
+      summary.longAnswerCount,
+      summary.attachmentCount,
+      JSON.stringify(summary.manualHistoryFields),
+      observedAt,
+    );
+}
+
+export function listApplicationObservation(db: Database, observationId: string): ApplicationObservationSummary | null {
+  const row = db.query(`SELECT account_gate as accountGate, resume_required as resumeRequired,
+    required_field_count as requiredFieldCount, optional_field_count as optionalFieldCount,
+    unknown_field_count as unknownFieldCount, custom_question_count as customQuestionCount,
+    long_answer_count as longAnswerCount, attachment_count as attachmentCount,
+    manual_history_fields_json as manualHistoryFields
+    FROM application_observations WHERE observation_id = ?`).get(observationId) as
+    | (Omit<ApplicationObservationSummary, "accountGate" | "resumeRequired" | "manualHistoryFields"> & { accountGate: number | null; resumeRequired: number | null; manualHistoryFields: string })
+    | null;
+  if (!row) return null;
+  return {
+    accountGate: row.accountGate === null ? null : row.accountGate === 1,
+    resumeRequired: row.resumeRequired === null ? null : row.resumeRequired === 1,
+    requiredFieldCount: row.requiredFieldCount,
+    optionalFieldCount: row.optionalFieldCount,
+    unknownFieldCount: row.unknownFieldCount,
+    customQuestionCount: row.customQuestionCount,
+    longAnswerCount: row.longAnswerCount,
+    attachmentCount: row.attachmentCount,
+    manualHistoryFields: JSON.parse(row.manualHistoryFields),
+  };
+}
+
 export function saveInference(db: Database, inference: PostingInference): void {
   db.query("INSERT INTO posting_inferences (type, confidence, signals_json, observation_ids_json) VALUES (?, ?, ?, ?)")
     .run(inference.type, inference.confidence, JSON.stringify(inference.signals), JSON.stringify(inference.observationIds));
@@ -228,5 +275,55 @@ export function listValidationResults(db: Database): JobIdComparison[] {
     unexpectedInScraper: JSON.parse(row.unexpected_in_scraper_json),
     agreementRate: row.agreement_rate,
     status: row.status,
+  }));
+}
+
+export interface HealEventRecord {
+  eventId?: number;
+  sourceId: string;
+  collectorId: string;
+  failedRunId: string;
+  reason: string;
+  generatedPrompt: string;
+  previewResult: Record<string, unknown> | null;
+  previewHealth: Record<string, unknown> | null;
+  approved: boolean | null;
+  repairedRunId: string | null;
+  createdAt?: string;
+}
+
+export function saveHealEvent(db: Database, event: Omit<HealEventRecord, "eventId" | "createdAt">): void {
+  db.query(`INSERT INTO heal_events
+    (source_id, collector_id, failed_run_id, reason, generated_prompt,
+     preview_result_json, preview_health_json, approved, repaired_run_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      event.sourceId,
+      event.collectorId,
+      event.failedRunId,
+      event.reason,
+      event.generatedPrompt,
+      event.previewResult === null ? null : JSON.stringify(event.previewResult),
+      event.previewHealth === null ? null : JSON.stringify(event.previewHealth),
+      event.approved === null ? null : Number(event.approved),
+      event.repairedRunId,
+    );
+}
+
+export function listHealEvents(db: Database): HealEventRecord[] {
+  const rows = db.query(`SELECT event_id as eventId, source_id as sourceId, collector_id as collectorId,
+    failed_run_id as failedRunId, reason, generated_prompt as generatedPrompt,
+    preview_result_json as previewResult, preview_health_json as previewHealth,
+    approved, repaired_run_id as repairedRunId, created_at as createdAt
+    FROM heal_events ORDER BY event_id DESC`).all() as Array<HealEventRecord & {
+      previewResult: string | null;
+      previewHealth: string | null;
+      approved: number | null;
+    }>;
+  return rows.map((row) => ({
+    ...row,
+    previewResult: row.previewResult === null ? null : JSON.parse(row.previewResult),
+    previewHealth: row.previewHealth === null ? null : JSON.parse(row.previewHealth),
+    approved: row.approved === null ? null : row.approved === 1,
   }));
 }

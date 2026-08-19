@@ -4,7 +4,7 @@ import { createAppServer } from "../src/server";
 import { saveScrapeRun } from "../src/storage/repository";
 import { saveObservation } from "../src/storage/repository";
 import { saveValidationResult } from "../src/storage/repository";
-import { savePostingEvent } from "../src/storage/repository";
+import { saveApplicationObservation, saveHealEvent, savePostingEvent } from "../src/storage/repository";
 
 test("summary endpoint exposes source confidence separately from job analysis", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/api/summary"));
@@ -22,9 +22,49 @@ test("dashboard includes active source coverage metrics", async () => {
   expect(await response.text()).toContain("ACTIVE SOURCES");
 });
 
+test("dashboard serves browser-parseable JavaScript", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(() => new Function(body)).not.toThrow();
+});
+
+test("jobs endpoint stays responsive as observations grow", async () => {
+  const db = createDatabase(":memory:");
+  const description = "Build APIs with TypeScript. ".repeat(400);
+  for (let index = 0; index < 300; index += 1) {
+    saveObservation(db, {
+      observationId: `obs-${index}`,
+      sourceId: "zfh",
+      observedAt: `2026-08-${String((index % 28) + 1).padStart(2, "0")}T00:00:00.000Z`,
+      title: `Engineer ${index}`,
+      location: "Bengaluru",
+      description,
+      postedDateQuality: "unavailable",
+      closingDateQuality: "unavailable",
+      provenance: {},
+      sourceConfidence: 1,
+    } as any);
+  }
+  const startedAt = performance.now();
+  const response = await createAppServer(db).fetch(new Request("http://local/api/jobs"));
+  const elapsedMs = performance.now() - startedAt;
+  expect(response.status).toBe(200);
+  expect(elapsedMs).toBeLessThan(1500);
+});
+
 test("dashboard renders structural health state for collector runs", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   expect(await response.text()).toContain("healthStatus");
+});
+
+test("dashboard labels last-known-good evidence", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  expect(await response.text()).toContain("LAST KNOWN GOOD");
+});
+
+test("dashboard labels review-gated heal evidence", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  expect(await response.text()).toContain("HEAL REVIEW");
 });
 
 test("dashboard renders explicit source scope", async () => {
@@ -82,6 +122,33 @@ test("summary endpoint exposes structural quarantine evidence", async () => {
   saveScrapeRun(db, { runId: "run-quarantined", collectorId: "collector-1", sourceId: "visa", observedAt: "2026-08-20T00:00:00.000Z", status: "quarantined", rowCount: 2, expectedMinimumRows: 2, healthStatus: "quarantined", healthReport: { errors: ["field coverage below threshold: location"] }, rawOutput: "raw" });
   const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
   expect(await response.json()).toMatchObject({ runs: [{ status: "quarantined", healthStatus: "quarantined", healthReport: { errors: ["field coverage below threshold: location"] } }] });
+});
+
+test("summary exposes last-known-good runs separately from a quarantined run", async () => {
+  const db = createDatabase(":memory:");
+  saveScrapeRun(db, { runId: "run-good", collectorId: "collector-1", sourceId: "visa", observedAt: "2026-08-19T00:00:00.000Z", status: "success", rowCount: 10, expectedMinimumRows: 1, rawOutput: "[]" });
+  saveScrapeRun(db, { runId: "run-bad", collectorId: "collector-1", sourceId: "visa", observedAt: "2026-08-20T00:00:00.000Z", status: "quarantined", rowCount: 10, expectedMinimumRows: 1, healthStatus: "quarantined", healthReport: { errors: ["location coverage collapsed"] }, rawOutput: "raw" });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
+  expect(await response.json()).toMatchObject({
+    lastKnownGood: [{ sourceId: "visa", runId: "run-good", rowCount: 10 }],
+  });
+});
+
+test("summary exposes review-gated healing evidence", async () => {
+  const db = createDatabase(":memory:");
+  saveHealEvent(db, {
+    sourceId: "visa",
+    collectorId: "c_visa",
+    failedRunId: "run-bad",
+    reason: "location coverage collapsed",
+    generatedPrompt: "Restore location extraction.",
+    previewResult: { status: "returned" },
+    previewHealth: { status: "healthy" },
+    approved: null,
+    repairedRunId: null,
+  });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
+  expect(await response.json()).toMatchObject({ healEvents: [{ sourceId: "visa", approved: null, previewHealth: { status: "healthy" } }] });
 });
 
 test("summary endpoint exposes oracle validation separately from collector health", async () => {
@@ -179,4 +246,35 @@ test("job detail exposes persisted lifecycle events as history evidence", async 
 test("job detail UI labels persisted lifecycle events separately from inferences", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   expect(await response.text()).toContain("PERSISTED LIFECYCLE EVENTS");
+});
+
+test("job detail exposes the structured application observation", async () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-application", sourceId: "zfh", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
+  saveApplicationObservation(db, "obs-application", {
+    accountGate: true,
+    resumeRequired: true,
+    requiredFieldCount: 1,
+    optionalFieldCount: 0,
+    unknownFieldCount: 0,
+    customQuestionCount: 0,
+    longAnswerCount: 0,
+    attachmentCount: 1,
+    manualHistoryFields: [],
+  });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/jobs/obs-application"));
+  expect(await response.json()).toMatchObject({ applicationObservation: { accountGate: true, resumeRequired: true, attachmentCount: 1 } });
+});
+
+test("job detail UI labels the public application observation summary", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(body).toContain("APPLICATION OBSERVATION");
+  expect(body).toContain("LONG ANSWERS");
+});
+
+test("job detail UI distinguishes optional application fields from unknown fields", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(body).toContain('field.required === false ? "(optional)"');
 });

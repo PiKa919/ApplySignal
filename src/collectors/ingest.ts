@@ -1,8 +1,9 @@
 import { normalizeJobObservation } from "../domain/normalize";
 import { classifyLifecycleState, diffObservations, inferPostingRelationship } from "../domain/lifecycle";
 import { createDatabase } from "../storage/database";
-import { listLatestObservations, saveApplicationFields, saveInference, saveObservation, savePostingEvent, saveScrapeRun } from "../storage/repository";
+import { listLatestObservations, saveApplicationFields, saveApplicationObservation, saveInference, saveObservation, savePostingEvent, saveScrapeRun } from "../storage/repository";
 import { RECIPROCITY_CATEGORIES, type ApplicationFieldObservation, type ReciprocityCategory } from "../domain/reciprocity";
+import { summarizeApplicationObservation, type ApplicationFieldSignal } from "../domain/application";
 import type { Database } from "bun:sqlite";
 import type { CollectorRunResult } from "./brightdata";
 import type { RawJobRow } from "../domain/observations";
@@ -82,14 +83,26 @@ interface RawApplicationField {
   field_label?: string;
   normalized_category?: string;
   is_required?: boolean | null;
+  input_type?: string;
+  is_attachment?: boolean;
+  is_custom_question?: boolean;
 }
 
 const isCategory = (value: string): value is ReciprocityCategory => (RECIPROCITY_CATEGORIES as readonly string[]).includes(value);
 
-export function ingestApplicationFields(db: Database, observationId: string, payload: { application_form_fields?: RawApplicationField[] }): number {
-  const fields: ApplicationFieldObservation[] = (payload.application_form_fields ?? [])
+export function ingestApplicationFields(db: Database, observationId: string, payload: { account_required?: boolean | null; application_form_fields?: RawApplicationField[] }): number {
+  const signals: ApplicationFieldSignal[] = (payload.application_form_fields ?? [])
     .filter((field): field is RawApplicationField & { field_label: string; normalized_category: string } => Boolean(field.field_label && field.normalized_category && isCategory(field.normalized_category)))
-    .map((field) => ({ label: field.field_label, category: field.normalized_category as ReciprocityCategory, required: field.is_required ?? null }));
+    .map((field) => ({
+      label: field.field_label,
+      category: field.normalized_category as ReciprocityCategory,
+      required: field.is_required ?? null,
+      inputType: field.input_type,
+      isAttachment: field.is_attachment,
+      isCustomQuestion: field.is_custom_question,
+    }));
+  const fields: ApplicationFieldObservation[] = signals.map(({ label, category, required }) => ({ label, category, required }));
   saveApplicationFields(db, observationId, fields);
+  saveApplicationObservation(db, observationId, summarizeApplicationObservation({ accountRequired: payload.account_required ?? null, fields: signals }));
   return fields.length;
 }

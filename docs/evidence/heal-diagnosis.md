@@ -9,3 +9,5 @@ Collector c_visa for source visa requires review before healing. Observed extrac
 ```
 
 The function returns `automaticHeal: false`. It does not call the Bright Data CLI, approve a preview, or spend credits. A stable comparison returns `status: no_action` and no prompt. This keeps the last-known-good observation boundary intact while making the next repair action concrete and auditable.
+
+Review state can be persisted in the `heal_events` table and is exposed through `/api/summary` as `healEvents`. The dashboard renders `HEAL REVIEW` cards with awaiting-approval, approved, or rejected state and any repaired run ID. This record is deliberately separate from `scrape_runs`: a diagnosis or preview is not treated as a successful repaired collection until the human approval and rerun evidence exist.

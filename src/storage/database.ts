@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
   source_id TEXT NOT NULL,
   observed_at TEXT NOT NULL,
   status TEXT NOT NULL,
+  run_kind TEXT NOT NULL DEFAULT 'listing',
   row_count INTEGER NOT NULL DEFAULT 0,
   expected_minimum_rows INTEGER,
   health_status TEXT NOT NULL DEFAULT 'healthy',
@@ -51,6 +52,20 @@ CREATE TABLE IF NOT EXISTS application_fields (
   required INTEGER
 );
 
+CREATE TABLE IF NOT EXISTS application_observations (
+  observation_id TEXT PRIMARY KEY REFERENCES job_observations(observation_id) ON DELETE CASCADE,
+  account_gate INTEGER,
+  resume_required INTEGER,
+  required_field_count INTEGER NOT NULL,
+  optional_field_count INTEGER NOT NULL,
+  unknown_field_count INTEGER NOT NULL,
+  custom_question_count INTEGER NOT NULL,
+  long_answer_count INTEGER NOT NULL,
+  attachment_count INTEGER NOT NULL,
+  manual_history_fields_json TEXT NOT NULL,
+  observed_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS posting_inferences (
   inference_id INTEGER PRIMARY KEY AUTOINCREMENT,
   type TEXT NOT NULL,
@@ -82,6 +97,20 @@ CREATE TABLE IF NOT EXISTS validation_results (
   agreement_rate REAL,
   status TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS heal_events (
+  event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_id TEXT NOT NULL,
+  collector_id TEXT NOT NULL,
+  failed_run_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  generated_prompt TEXT NOT NULL,
+  preview_result_json TEXT,
+  preview_health_json TEXT,
+  approved INTEGER,
+  repaired_run_id TEXT,
+  created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
 `;
 
 export function createDatabase(path: string): Database {
@@ -92,6 +121,7 @@ export function createDatabase(path: string): Database {
     "ALTER TABLE scrape_runs ADD COLUMN health_status TEXT NOT NULL DEFAULT 'healthy'",
     "ALTER TABLE scrape_runs ADD COLUMN health_report TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE job_observations ADD COLUMN flags_json TEXT NOT NULL DEFAULT '{}'",
+    "ALTER TABLE scrape_runs ADD COLUMN run_kind TEXT NOT NULL DEFAULT 'listing'",
   ]) {
     try { db.exec(statement); } catch (error) {
       if (!String(error).includes("duplicate column name")) throw error;

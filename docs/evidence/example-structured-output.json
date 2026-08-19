@@ -1,0 +1,18 @@
+{
+  "observationId": "obs_5f53acd41390db2a",
+  "sourceId": "zfh",
+  "dataMode": "live",
+  "title": "Senior Software Engineer - Backend Development",
+  "applicationObservation": {
+    "accountGate": null,
+    "resumeRequired": true,
+    "requiredFieldCount": 9,
+    "optionalFieldCount": 8,
+    "unknownFieldCount": 0,
+    "customQuestionCount": 0,
+    "longAnswerCount": 0,
+    "attachmentCount": 1,
+    "manualHistoryFields": ["Employer", "Education", "Current ctc", "Expected ctc"]
+  },
+  "evidenceBoundary": "Public field labels and metadata only; candidate-entered values are not collected."
+}

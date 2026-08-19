@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDatabase } from "../../src/storage/database";
-import { listLatestObservations, listPostingEvents, saveObservation, savePostingEvent } from "../../src/storage/repository";
+import { listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, saveApplicationObservation, saveHealEvent, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
 
 test("round-trips observations without collapsing unknown fields", () => {
   const db = createDatabase(":memory:");
@@ -41,5 +41,70 @@ test("round-trips lifecycle events separately from observations", () => {
     beforeObservationId: "obs-before",
     afterObservationId: "obs-after",
     evidence: { changes: [{ field: "closingDate" }] },
+  }]);
+});
+
+test("round-trips structured application observations without candidate values", () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-application", sourceId: "zfh", observedAt: "2026-08-20T00:00:00.000Z", title: "Backend" } as any);
+  saveApplicationObservation(db, "obs-application", {
+    accountGate: true,
+    resumeRequired: true,
+    requiredFieldCount: 2,
+    optionalFieldCount: 1,
+    unknownFieldCount: 0,
+    customQuestionCount: 1,
+    longAnswerCount: 1,
+    attachmentCount: 1,
+    manualHistoryFields: ["Current CTC"],
+  }, "2026-08-20T00:00:00.000Z");
+  expect(listApplicationObservation(db, "obs-application")).toEqual({
+    accountGate: true,
+    resumeRequired: true,
+    requiredFieldCount: 2,
+    optionalFieldCount: 1,
+    unknownFieldCount: 0,
+    customQuestionCount: 1,
+    longAnswerCount: 1,
+    attachmentCount: 1,
+    manualHistoryFields: ["Current CTC"],
+  });
+});
+
+test("keeps application scrape runs distinct from listing runs", () => {
+  const db = createDatabase(":memory:");
+  saveScrapeRun(db, {
+    runId: "run-application",
+    collectorId: "collector-application",
+    sourceId: "zfh",
+    runKind: "application",
+    observedAt: "2026-08-20T00:00:00.000Z",
+    status: "success",
+    rowCount: 17,
+    expectedMinimumRows: 1,
+    rawOutput: "[redacted]",
+  });
+  expect(listScrapeRuns(db)[0]).toMatchObject({ runKind: "application", rowCount: 17 });
+});
+
+test("round-trips review-gated heal evidence separately from scrape runs", () => {
+  const db = createDatabase(":memory:");
+  saveHealEvent(db, {
+    sourceId: "visa",
+    collectorId: "c_visa",
+    failedRunId: "run-bad",
+    reason: "location coverage collapsed",
+    generatedPrompt: "Restore location extraction without changing the schema.",
+    previewResult: { status: "returned" },
+    previewHealth: { status: "healthy", recordCount: 10 },
+    approved: null,
+    repairedRunId: null,
+  });
+  expect(listHealEvents(db)).toMatchObject([{
+    sourceId: "visa",
+    collectorId: "c_visa",
+    failedRunId: "run-bad",
+    approved: null,
+    previewHealth: { recordCount: 10 },
   }]);
 });
