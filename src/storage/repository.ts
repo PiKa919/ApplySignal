@@ -1,7 +1,7 @@
 import type { Database } from "bun:sqlite";
 import type { JobObservation } from "../domain/observations";
 import type { ApplicationFieldObservation } from "../domain/reciprocity";
-import type { PostingInference } from "../domain/lifecycle";
+import type { LifecycleState, PostingInference } from "../domain/lifecycle";
 import type { JobIdComparison } from "../domain/validation";
 import { classifyPostingFlags } from "../domain/normalize";
 
@@ -152,6 +152,35 @@ export function listApplicationFields(db: Database, observationId: string): Appl
 export function saveInference(db: Database, inference: PostingInference): void {
   db.query("INSERT INTO posting_inferences (type, confidence, signals_json, observation_ids_json) VALUES (?, ?, ?, ?)")
     .run(inference.type, inference.confidence, JSON.stringify(inference.signals), JSON.stringify(inference.observationIds));
+}
+
+export interface PostingEventRecord {
+  sourceId: string;
+  eventType: LifecycleState;
+  beforeObservationId: string | null;
+  afterObservationId: string;
+  observedAt: string;
+  evidence: Record<string, unknown>;
+}
+
+export function savePostingEvent(db: Database, event: PostingEventRecord): void {
+  db.query(`INSERT INTO posting_events
+    (source_id, event_type, before_observation_id, after_observation_id, observed_at, evidence_json)
+    VALUES (?, ?, ?, ?, ?, ?)`)
+    .run(event.sourceId, event.eventType, event.beforeObservationId, event.afterObservationId, event.observedAt, JSON.stringify(event.evidence));
+}
+
+export function listPostingEvents(db: Database, sourceId?: string): Array<PostingEventRecord & { eventId: number }> {
+  const rows = sourceId
+    ? db.query(`SELECT event_id as eventId, source_id as sourceId, event_type as eventType,
+      before_observation_id as beforeObservationId, after_observation_id as afterObservationId,
+      observed_at as observedAt, evidence_json as evidence
+      FROM posting_events WHERE source_id = ? ORDER BY event_id DESC`).all(sourceId)
+    : db.query(`SELECT event_id as eventId, source_id as sourceId, event_type as eventType,
+      before_observation_id as beforeObservationId, after_observation_id as afterObservationId,
+      observed_at as observedAt, evidence_json as evidence
+      FROM posting_events ORDER BY event_id DESC`).all();
+  return (rows as Array<PostingEventRecord & { eventId: number; evidence: string }>).map((row) => ({ ...row, evidence: JSON.parse(row.evidence) }));
 }
 
 export function saveValidationResult(db: Database, result: JobIdComparison): void {

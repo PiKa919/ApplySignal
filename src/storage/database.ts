@@ -59,6 +59,16 @@ CREATE TABLE IF NOT EXISTS posting_inferences (
   observation_ids_json TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS posting_events (
+  event_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_id TEXT NOT NULL,
+  event_type TEXT NOT NULL,
+  before_observation_id TEXT,
+  after_observation_id TEXT NOT NULL,
+  observed_at TEXT NOT NULL,
+  evidence_json TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS validation_results (
   validation_id INTEGER PRIMARY KEY AUTOINCREMENT,
   source_id TEXT NOT NULL,

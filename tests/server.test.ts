@@ -4,6 +4,7 @@ import { createAppServer } from "../src/server";
 import { saveScrapeRun } from "../src/storage/repository";
 import { saveObservation } from "../src/storage/repository";
 import { saveValidationResult } from "../src/storage/repository";
+import { savePostingEvent } from "../src/storage/repository";
 
 test("summary endpoint exposes source confidence separately from job analysis", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/api/summary"));
@@ -165,4 +166,17 @@ test("dashboard includes the candidate compare surface", async () => {
   const scriptBody = await script.text();
   expect(scriptBody).toContain("/api/compare");
   expect(scriptBody).toContain("APPLICATION BURDEN");
+});
+
+test("job detail exposes persisted lifecycle events as history evidence", async () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-after", sourceId: "zfh", sourceUrl: "https://example.test/jobs", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
+  savePostingEvent(db, { sourceId: "zfh", eventType: "NEWLY_OBSERVED", beforeObservationId: null, afterObservationId: "obs-after", observedAt: "2026-08-20T00:00:00.000Z", evidence: { changes: [] } });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/jobs/obs-after"));
+  expect(await response.json()).toMatchObject({ events: [expect.objectContaining({ eventType: "NEWLY_OBSERVED", afterObservationId: "obs-after" })] });
+});
+
+test("job detail UI labels persisted lifecycle events separately from inferences", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  expect(await response.text()).toContain("PERSISTED LIFECYCLE EVENTS");
 });

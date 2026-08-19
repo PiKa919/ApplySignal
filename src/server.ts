@@ -2,7 +2,7 @@ import { analyzeReciprocity } from "./domain/reciprocity";
 import { classifyLifecycleState, diffObservations, inferPostingRelationship } from "./domain/lifecycle";
 import { analyzeFreshness } from "./domain/freshness";
 import { SOURCE_CATALOG } from "./domain/source-catalog";
-import { listApplicationFields, listLatestObservations, listScrapeRuns, listValidationResults } from "./storage/repository";
+import { listApplicationFields, listLatestObservations, listPostingEvents, listScrapeRuns, listValidationResults } from "./storage/repository";
 import type { Database } from "bun:sqlite";
 
 const json = (value: unknown, status = 200): Response => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -30,6 +30,7 @@ export function createAppServer(db: Database) {
           sourceCatalog: SOURCE_CATALOG,
           runs: listScrapeRuns(db),
           validationResults: listValidationResults(db),
+          postingEvents: listPostingEvents(db),
           sourceConfidence: jobs.map((job) => ({ observationId: job.observationId, sourceId: job.sourceId, confidence: job.sourceConfidence, dataMode: job.dataMode })),
           analyses: jobs.map((job) => ({ observationId: job.observationId, ...analysisFor(job) })),
         });
@@ -57,7 +58,8 @@ export function createAppServer(db: Database) {
         if (!job) return json({ error: "job observation not found" }, 404);
         const history = observations().filter((candidate) => candidate.sourceId === job.sourceId && candidate.observationId !== job.observationId).slice(0, 5);
         const inferences = history.map((candidate) => inferPostingRelationship(candidate, job)).filter((inference) => inference !== null);
-        return json({ ...job, fields: listApplicationFields(db, job.observationId), analysis: analysisFor(job), diffs: history.map((candidate) => diffObservations(candidate, job)), inferences });
+        const events = listPostingEvents(db).filter((event) => event.sourceId === job.sourceId && (event.afterObservationId === job.observationId || event.beforeObservationId === job.observationId));
+        return json({ ...job, fields: listApplicationFields(db, job.observationId), analysis: analysisFor(job), diffs: history.map((candidate) => diffObservations(candidate, job)), inferences, events });
       }
       if (url.pathname === "/" || url.pathname === "/index.html") return new Response(await Bun.file(`${import.meta.dir}/ui/index.html`).text(), { headers: { "content-type": "text/html; charset=utf-8" } });
       if (url.pathname === "/styles.css") return new Response(await Bun.file(`${import.meta.dir}/ui/styles.css`).text(), { headers: { "content-type": "text/css; charset=utf-8" } });

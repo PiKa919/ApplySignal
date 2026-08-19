@@ -6,6 +6,7 @@ import { loadControlledFixture } from "../../src/collectors/controlled-fixture";
 import { ingestApplicationFields, ingestCollectorResult } from "../../src/collectors/ingest";
 import { createDatabase } from "../../src/storage/database";
 import { listApplicationFields } from "../../src/storage/repository";
+import { listPostingEvents } from "../../src/storage/repository";
 
 test("lifecycle demo keeps two observations separate and inferable", async () => {
   const rows = JSON.parse(await readFile(new URL("../../src/collectors/fixtures/lifecycle-demo.json", import.meta.url), "utf8"));
@@ -67,5 +68,25 @@ test("controlled fixture ingestion persists the rich public form without values"
   expect(listApplicationFields(db, richObservationId)).toEqual(expect.arrayContaining([
     expect.objectContaining({ label: "Resume", required: true }),
     expect.objectContaining({ label: "Current CTC", required: true }),
+  ]));
+});
+
+test("lifecycle fixture ingestion records a structured update event", async () => {
+  const db = createDatabase(":memory:");
+  const rows = JSON.parse(await readFile(new URL("../../src/collectors/fixtures/lifecycle-demo.json", import.meta.url), "utf8"));
+  ingestCollectorResult(db, {
+    runId: "lifecycle-events",
+    collectorId: "fixture-lifecycle",
+    sourceId: "demo-lifecycle",
+    sourceUrl: "https://example.test/demo-lifecycle",
+    observedAt: "2026-08-20T10:00:00.000Z",
+    status: "success",
+    rawOutput: JSON.stringify(rows),
+    stderr: "",
+    rows,
+    expectedMinimumRows: 2,
+  }, "fixture");
+  expect(listPostingEvents(db)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ sourceId: "demo-lifecycle", eventType: "MEANINGFULLY_UPDATED", beforeObservationId: expect.any(String), afterObservationId: expect.any(String) }),
   ]));
 });

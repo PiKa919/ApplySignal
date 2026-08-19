@@ -1,7 +1,7 @@
 import { normalizeJobObservation } from "../domain/normalize";
+import { classifyLifecycleState, diffObservations, inferPostingRelationship } from "../domain/lifecycle";
 import { createDatabase } from "../storage/database";
-import { saveObservation, saveScrapeRun } from "../storage/repository";
-import { saveApplicationFields } from "../storage/repository";
+import { listLatestObservations, saveApplicationFields, saveInference, saveObservation, savePostingEvent, saveScrapeRun } from "../storage/repository";
 import { RECIPROCITY_CATEGORIES, type ApplicationFieldObservation, type ReciprocityCategory } from "../domain/reciprocity";
 import type { Database } from "bun:sqlite";
 import type { CollectorRunResult } from "./brightdata";
@@ -49,7 +49,26 @@ export function ingestCollectorResult(db: Database, result: CollectorRunResult, 
   run(result.status);
   const observationIds = rows.map((row) => {
     const observation = normalizeJobObservation(row, { sourceId: result.sourceId, sourceUrl: result.sourceUrl ?? String(row.source_url ?? ""), observedAt: result.observedAt });
+    const history = listLatestObservations(db, result.sourceId);
+    const exactPrevious = history
+      .filter((candidate) => candidate.observationId !== observation.observationId && candidate.observedAt <= observation.observedAt)
+      .filter((candidate) => (observation.sourceJobId && candidate.sourceJobId === observation.sourceJobId) || (observation.url && candidate.url === observation.url))[0] ?? null;
+    const inferredPrevious = exactPrevious ?? history.find((candidate) => candidate.observationId !== observation.observationId && candidate.observedAt <= observation.observedAt && inferPostingRelationship(candidate, observation) !== null) ?? null;
+    const lifecycleState = classifyLifecycleState({ current: observation, previous: inferredPrevious });
+    const inference = inferredPrevious && !exactPrevious ? inferPostingRelationship(inferredPrevious, observation) : null;
     saveObservation(db, { ...observation, dataMode });
+    if (inference) saveInference(db, inference);
+    savePostingEvent(db, {
+      sourceId: observation.sourceId,
+      eventType: lifecycleState,
+      beforeObservationId: inferredPrevious?.observationId ?? null,
+      afterObservationId: observation.observationId,
+      observedAt: observation.observedAt,
+      evidence: {
+        changes: inferredPrevious ? diffObservations(inferredPrevious, observation).changes : [],
+        ...(inference ? { inference } : {}),
+      },
+    });
     return observation.observationId;
   });
   return { runId: result.runId, sourceId: result.sourceId, observationIds, rowCount: rows.length, dataMode };

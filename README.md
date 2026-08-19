@@ -82,6 +82,8 @@ When a baseline/current distribution comparison requires review, `buildHealDiagn
 
 Every catalog entry also declares its observation scope (`all_jobs`, `subset`, or `talent_pool`, plus geography and career filters). Health and cardinality claims are interpreted within that scope; a scoped zero is not treated as a failed full-board scrape.
 
+Successful ingestion also appends a `posting_events` record for each observation. These records preserve lifecycle state, before/after observation IDs, and structured field-change evidence separately from the raw observation facts and possible-repost inferences.
+
 ## Evidence boundary
 
 Live and fixture data are separate. Missing salary, deadlines, or application fields remain unknown; they are not converted to negative claims. The app does not submit applications or access login-protected data.
