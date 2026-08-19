@@ -10,6 +10,8 @@ The product keeps these signals separate:
 - lifecycle changes
 - source confidence
 
+The dashboard includes a side-by-side Compare surface for deciding where to spend application time. It shows freshness, disclosed-category transparency, application burden, lifecycle, and source confidence independently; it does not calculate a universal “worth applying” score.
+
 Its central view is the Reciprocity Gap: an explainable comparison between disclosed categories and requested application fields. A possible repost is an inference between two observations; it is never treated as proof that two postings represent one vacancy.
 
 Application analysis also exposes a Resume Re-entry Tax: the count and severity of public employment, education, compensation-history, experience, and current-employer fields requested in addition to a resume.
@@ -83,6 +85,6 @@ Live and fixture data are separate. Missing salary, deadlines, or application fi
 - `src/collectors/fixtures/controlled-career-site.json`: deterministic six-case, two-layout fault-injection fixture
 - `src/storage/`: SQLite schema and repositories
 - `src/server.ts`: JSON API and static dashboard server
-- `src/ui/`: evidence-focused dashboard
+- `src/ui/`: evidence-focused dashboard, job evidence, source health, and candidate Compare surface
 - `docs/superpowers/`: approved design and implementation plan
 - `docs/evidence/`: Bright Data preflight and live-run records

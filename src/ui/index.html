@@ -14,6 +14,20 @@
       .health-card.failed_generation { border-color: #7d4e35; }
       .health-source { font-weight: 750; }
       .health-meta { color: #a9aa9f; font-size: 12px; margin-top: 5px; line-height: 1.4; }
+      .compare-panel { margin: 0 0 56px; border: 1px solid #343832; border-radius: 16px; padding: 22px; background: rgba(22, 25, 21, .72); }
+      .compare-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
+      .compare-controls label { color: #a9aa9f; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
+      .compare-controls select, .compare-controls button { display: block; width: 100%; margin-top: 7px; border: 1px solid #343832; border-radius: 8px; background: #101210; color: #f4f0e7; padding: 11px; font: inherit; }
+      .compare-controls button { background: #d9ff5b; color: #101210; border-color: #d9ff5b; cursor: pointer; font-weight: 800; }
+      .compare-controls button:disabled { opacity: .45; cursor: not-allowed; }
+      .compare-result { margin-top: 18px; overflow-x: auto; }
+      .compare-result.empty { color: #a9aa9f; font-size: 13px; }
+      .compare-table { min-width: 620px; }
+      .compare-heading, .compare-row { display: grid; grid-template-columns: minmax(130px, .7fr) 1fr 1fr; gap: 12px; padding: 12px 0; border-bottom: 1px solid #343832; }
+      .compare-heading strong { color: #d9ff5b; }
+      .compare-row span { color: #c4c7bc; font-size: 13px; line-height: 1.45; }
+      .compare-row .compare-label { color: #ff9f68; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
+      @media (max-width: 700px) { .compare-controls { grid-template-columns: 1fr; } }
     </style>
   </head>
   <body>
@@ -25,6 +39,15 @@
         <div class="legend"><span class="badge fixture">FIXTURE</span><span class="badge unknown">UNKNOWN IS NOT NO</span><span class="badge inferred">INFERENCE ≠ FACT</span></div>
       </header>
       <section id="metrics" class="metrics" aria-label="Signal summary"></section>
+      <section class="compare-panel" aria-labelledby="compare-heading">
+        <div class="section-heading"><div><p class="eyebrow">COMPARE</p><h2 id="compare-heading">WHERE SHOULD I SPEND 30 MINUTES?</h2></div><span class="muted">independent signals, no aggregate score</span></div>
+        <div class="compare-controls">
+          <label>Role A<select id="compare-left" aria-label="Role A"></select></label>
+          <label>Role B<select id="compare-right" aria-label="Role B"></select></label>
+          <button id="compare-run" type="button">Compare evidence</button>
+        </div>
+        <div id="compare-result" class="compare-result empty">Choose two observations to compare freshness, transparency, application burden, lifecycle, and source confidence.</div>
+      </section>
       <section class="health-panel">
         <div class="section-heading"><div><p class="eyebrow">COLLECTOR HEALTH</p><h2>Trust the observation pipeline</h2></div><span class="muted">run status is separate from employer signals</span></div>
         <div id="health" class="health-list"></div>

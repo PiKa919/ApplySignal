@@ -37,6 +37,20 @@ export function createAppServer(db: Database) {
       if (url.pathname === "/api/jobs") {
         return json(observations().map((job) => ({ ...job, analysis: analysisFor(job) })));
       }
+      if (url.pathname === "/api/compare") {
+        const leftId = url.searchParams.get("left");
+        const rightId = url.searchParams.get("right");
+        if (!leftId || !rightId) return json({ error: "left and right observation IDs are required" }, 400);
+        const jobs = observations();
+        const left = jobs.find((job) => job.observationId === leftId);
+        const right = jobs.find((job) => job.observationId === rightId);
+        if (!left || !right) return json({ error: "one or both observations were not found" }, 404);
+        return json({
+          dimensions: ["freshness", "transparency", "application_burden", "lifecycle", "source_confidence"],
+          left: { ...left, analysis: analysisFor(left) },
+          right: { ...right, analysis: analysisFor(right) },
+        });
+      }
       const detailMatch = url.pathname.match(/^\/api\/jobs\/([^/]+)$/);
       if (detailMatch) {
         const job = observations().find((candidate) => candidate.observationId === detailMatch[1]);

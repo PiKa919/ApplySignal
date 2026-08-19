@@ -136,3 +136,33 @@ test("summary exposes freshness evidence without inventing a publish date", asyn
   const analysis = (await response.json()).analyses[0];
   expect(analysis.freshness).toMatchObject({ precision: "lower_bound", sourcePublishedAt: null, ageMinDays: 30 });
 });
+
+test("compare endpoint returns two jobs with independent signal dimensions", async () => {
+  const db = createDatabase(":memory:");
+  const base = { sourceId: "demo-controlled", sourceUrl: "https://fixture.applysignal.test/jobs", title: "Role", location: "Remote", description: "Build APIs", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 0.8 } as any;
+  saveObservation(db, { ...base, observationId: "left", observedAt: "2026-08-19T00:00:00.000Z" });
+  saveObservation(db, { ...base, observationId: "right", title: "Role 2", observedAt: "2026-08-20T00:00:00.000Z" });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/compare?left=left&right=right"));
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    dimensions: ["freshness", "transparency", "application_burden", "lifecycle", "source_confidence"],
+    left: { observationId: "left", analysis: { freshness: expect.any(Object) } },
+    right: { observationId: "right", analysis: { freshness: expect.any(Object) } },
+  });
+});
+
+test("compare endpoint rejects missing or unknown observations", async () => {
+  const server = createAppServer(createDatabase(":memory:"));
+  expect((await server.fetch(new Request("http://local/api/compare?left=a"))).status).toBe(400);
+  expect((await server.fetch(new Request("http://local/api/compare?left=a&right=b"))).status).toBe(404);
+});
+
+test("dashboard includes the candidate compare surface", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/"));
+  const body = await response.text();
+  expect(body).toContain("WHERE SHOULD I SPEND");
+  const script = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const scriptBody = await script.text();
+  expect(scriptBody).toContain("/api/compare");
+  expect(scriptBody).toContain("APPLICATION BURDEN");
+});

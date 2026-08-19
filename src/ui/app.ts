@@ -3,6 +3,10 @@ const jobs = document.querySelector("#jobs")!;
 const detail = document.querySelector("#detail")!;
 const count = document.querySelector("#count")!;
 const health = document.querySelector("#health")!;
+const compareLeft = document.querySelector<HTMLSelectElement>("#compare-left")!;
+const compareRight = document.querySelector<HTMLSelectElement>("#compare-right")!;
+const compareRun = document.querySelector<HTMLButtonElement>("#compare-run")!;
+const compareResult = document.querySelector<HTMLElement>("#compare-result")!;
 
 type Job = { observationId: string; title: string | null; location: string | null; dataMode: string; sourceConfidence: number | null; flags: { explicitEvergreen: boolean; evergreenLike: boolean; talentPool: boolean; multipleOpenings: boolean }; analysis: { gapLabel: string; explanation: string; requestedFieldCount: number; disclosedCount: number; resumeReentryFieldCount: number; resumeReentryLabel: string; lifecycleState: string; freshness: { precision: string; label: string; sourcePublishedAt: string | null; ageDays: number | null; ageMinDays: number | null; firstSeenAt: string } } };
 
@@ -19,6 +23,23 @@ const evidenceLink = (label: string, value: unknown): string => {
   const href = safeHref(value);
   return `<div><div class="detail-label">${esc(label)}</div><div class="detail-value">${href ? `<a href="${href}" target="_blank" rel="noreferrer">Open evidence</a>` : esc(value)}</div></div>`;
 };
+
+async function renderComparison() {
+  if (!compareLeft.value || !compareRight.value || compareLeft.value === compareRight.value) {
+    compareResult.textContent = "Choose two different observations to compare.";
+    return;
+  }
+  const comparison = await fetch(`/api/compare?left=${encodeURIComponent(compareLeft.value)}&right=${encodeURIComponent(compareRight.value)}`).then((response) => response.json()) as { left: Job; right: Job };
+  const signalRows = [
+    ["FRESHNESS", comparison.left.analysis.freshness.label, comparison.right.analysis.freshness.label],
+    ["TRANSPARENCY", `${comparison.left.analysis.disclosedCount} disclosed categories`, `${comparison.right.analysis.disclosedCount} disclosed categories`],
+    ["APPLICATION BURDEN", `${comparison.left.analysis.requestedFieldCount} fields · ${comparison.left.analysis.resumeReentryLabel} re-entry`, `${comparison.right.analysis.requestedFieldCount} fields · ${comparison.right.analysis.resumeReentryLabel} re-entry`],
+    ["LIFECYCLE", comparison.left.analysis.lifecycleState, comparison.right.analysis.lifecycleState],
+    ["SOURCE CONFIDENCE", `${Math.round((comparison.left.sourceConfidence ?? 0) * 100)}%`, `${Math.round((comparison.right.sourceConfidence ?? 0) * 100)}%`],
+  ];
+  compareResult.classList.remove("empty");
+  compareResult.innerHTML = `<div class="compare-table"><div class="compare-heading"><span></span><strong>${esc(comparison.left.title)}</strong><strong>${esc(comparison.right.title)}</strong></div>${signalRows.map(([label, left, right]) => `<div class="compare-row"><span class="compare-label">${esc(label)}</span><span>${esc(left)}</span><span>${esc(right)}</span></div>`).join("")}</div>`;
+}
 
 async function load() {
   const [summary, jobResponse] = await Promise.all([fetch("/api/summary").then((r) => r.json()), fetch("/api/jobs").then((r) => r.json())]);
@@ -42,6 +63,15 @@ async function load() {
     ["ORACLE VALIDATION", validationResults.length ? `${validationResults.filter((result) => result.status === "agree").length}/${validationResults.length} agree` : "NOT RUN"],
   ].map(([label, value]) => `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value">${esc(value)}</div></div>`).join("");
   count.textContent = `${jobsData.length} recorded observations`;
+  const options = jobsData.map((job) => `<option value="${esc(job.observationId)}">${esc(job.title)} · ${esc(job.location)}</option>`).join("");
+  compareLeft.innerHTML = options;
+  compareRight.innerHTML = options;
+  compareRun.disabled = jobsData.length < 2;
+  if (jobsData.length > 1) {
+    compareRight.selectedIndex = 1;
+    compareRun.addEventListener("click", () => { void renderComparison(); });
+    void renderComparison();
+  }
   jobs.innerHTML = jobsData.length ? jobsData.map((job) => `<article class="job-card" data-id="${esc(job.observationId)}"><div class="job-top"><div><div class="job-title">${esc(job.title)}</div><div class="job-meta">${esc(job.location)} · ${esc(job.dataMode)} · source confidence ${Math.round((job.sourceConfidence ?? 0) * 100)}%</div></div><div><div class="job-gap">${esc(job.analysis.gapLabel)}</div><div class="job-state">LIFECYCLE · ${esc(job.analysis.lifecycleState)}</div><div class="job-freshness">FRESHNESS · ${esc(job.analysis.freshness.precision)}</div></div></div></article>`).join("") : `<div class="detail empty"><p>No observations loaded yet. Ingest the checked-in fixture or run a live Bright Data collector.</p></div>`;
   jobs.querySelectorAll<HTMLElement>(".job-card").forEach((card) => card.addEventListener("click", () => showDetail(card.dataset.id!)));
 }
