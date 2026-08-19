@@ -19,7 +19,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Zerodha Fund House | Keep as first custom collector | Custom Scraper Studio collector created and live-run successfully; no matching CLI pipeline listed |
 | Palantir Lever fallback | Keep as second live collector | Custom Scraper Studio collector completed; batch run returned 307 public listing rows |
 | Visa | Live scoped detail | One public Workday detail collector completed; full-board generation remains unresolved |
-| Cadence | Unresolved generation | `c_mt0il1zsoiz0umxxe` reached code generation but did not complete during bounded polling |
+| Cadence | Live scoped detail | One public Workday detail collector completed; full-board generation remains unresolved |
 | BrowserStack | Unresolved generation | `c_mt0iq7oysxok3r6q4` reached preview picker but did not complete during bounded polling |
 | Meesho | Failed generation | Two custom Scraper Studio generation attempts failed; no live data claimed |
 | CRED | Pending | Candidate-specific Marketplace/library lookup still required |
@@ -41,6 +41,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Razorpay branded careers | `c_mt0huks12jww1ro77d` | Completed and returned the public Greenhouse board URL | Partial success; branded-page routing observed, but not a jobs dataset |
 | Razorpay Greenhouse board | `c_mt0hxxvn1inyto72ik` | Generation remained in code generation after bounded polling | Unresolved; no live output claimed |
 | Cadence Workday | `c_mt0il1zsoiz0umxxe` | Generation reached code generation at attempt 181 when bounded polling stopped | Unresolved; no live output claimed |
+| Cadence Workday detail | `c_mt0kbe2b2abejp81k2` | Completed against one public detail page; returned one row with duplicated location/time/date text | Live scoped observation ingested; extraction-quality caveat retained |
 | BrowserStack Workday | `c_mt0iq7oysxok3r6q4` | Generation reached preview picker at attempt 183 when bounded polling stopped | Unresolved; no live output claimed |
 | BrowserStack Workday detail | `c_mt0k5nx71ktmkmh3ul` | Scoped public detail generation remained in schema generation at attempt 182 when bounded polling stopped | Unresolved; no live output claimed |
 | Palantir Lever fallback | `c_mt0ivvftqptif51k9` | Completed; realtime switched to batch after page limit and returned 307 successful rows | Live listing dataset ingested; batch handoff retained as run evidence |
