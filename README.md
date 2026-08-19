@@ -156,3 +156,4 @@ Live and fixture data are separate. Missing salary, deadlines, or application fi
 - `src/ui/`: evidence-focused dashboard, job evidence, source health, and candidate Compare surface
 - `docs/superpowers/`: approved design and implementation plan
 - `docs/evidence/`: Bright Data preflight and live-run records
+- `docs/evidence/analysis-snapshots.md`: versioned persistence and read-through behavior for derived analyses

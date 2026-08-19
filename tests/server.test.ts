@@ -4,12 +4,29 @@ import { createAppServer } from "../src/server";
 import { saveScrapeRun } from "../src/storage/repository";
 import { saveObservation } from "../src/storage/repository";
 import { saveValidationResult } from "../src/storage/repository";
-import { saveApplicationObservation, saveHealEvent, savePostingEvent } from "../src/storage/repository";
+import { saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, savePostingEvent } from "../src/storage/repository";
 
 test("summary endpoint exposes source confidence separately from job analysis", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/api/summary"));
   expect(response.status).toBe(200);
   expect(await response.json()).toMatchObject({ sourceConfidence: expect.any(Array), analyses: expect.any(Array) });
+});
+
+test("summary and jobs use persisted analysis snapshots when available", async () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-snapshot-api", sourceId: "zfh", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
+  saveAnalysisSnapshot(db, {
+    snapshotId: "obs-snapshot-api:reciprocity-v1",
+    observationId: "obs-snapshot-api",
+    analysisVersion: "reciprocity-v1",
+    generatedAt: "2026-08-20T00:01:00.000Z",
+    analysis: { transparencyScore: 77, transparencySignals: [], transparencyInterpretation: "persisted", lifecycleState: "NEW", freshness: { precision: "exact" } },
+  });
+  const summary = await (await createAppServer(db).fetch(new Request("http://local/api/summary"))).json();
+  const jobs = await (await createAppServer(db).fetch(new Request("http://local/api/jobs"))).json();
+  expect(summary.analysisSnapshots).toMatchObject([{ observationId: "obs-snapshot-api", analysisVersion: "reciprocity-v1" }]);
+  expect(summary.analyses[0]).toMatchObject({ transparencyScore: 77, transparencyInterpretation: "persisted" });
+  expect(jobs[0].analysis).toMatchObject({ transparencyScore: 77, transparencyInterpretation: "persisted" });
 });
 
 test("dashboard includes the AI-use disclosure", async () => {

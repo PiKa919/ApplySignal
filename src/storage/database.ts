@@ -66,6 +66,15 @@ CREATE TABLE IF NOT EXISTS application_observations (
   observed_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS analysis_snapshots (
+  snapshot_id TEXT PRIMARY KEY,
+  observation_id TEXT NOT NULL REFERENCES job_observations(observation_id) ON DELETE CASCADE,
+  analysis_version TEXT NOT NULL,
+  generated_at TEXT NOT NULL,
+  analysis_json TEXT NOT NULL,
+  UNIQUE(observation_id, analysis_version)
+);
+
 CREATE TABLE IF NOT EXISTS posting_inferences (
   inference_id INTEGER PRIMARY KEY AUTOINCREMENT,
   type TEXT NOT NULL,

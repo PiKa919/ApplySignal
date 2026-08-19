@@ -1,8 +1,7 @@
-import { analyzeReciprocity } from "./domain/reciprocity";
-import { classifyLifecycleState, diffObservations, inferPostingRelationship } from "./domain/lifecycle";
-import { analyzeFreshness } from "./domain/freshness";
+import { buildObservationAnalysis } from "./domain/analysis";
+import { diffObservations, inferPostingRelationship } from "./domain/lifecycle";
 import { SOURCE_CATALOG } from "./domain/source-catalog";
-import { listApplicationFields, listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, listValidationResults } from "./storage/repository";
+import { listAnalysisSnapshots, listApplicationFields, listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, listValidationResults } from "./storage/repository";
 import type { Database } from "bun:sqlite";
 
 const json = (value: unknown, status = 200): Response => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -10,6 +9,8 @@ const json = (value: unknown, status = 200): Response => new Response(JSON.strin
 export function createAppServer(db: Database) {
   const createContext = () => {
     const jobs = listLatestObservations(db);
+    const snapshots = listAnalysisSnapshots(db);
+    const snapshotByObservation = new Map(snapshots.map((snapshot) => [snapshot.observationId, snapshot.analysis]));
     const fieldsByObservation = new Map(jobs.map((job) => [job.observationId, listApplicationFields(db, job.observationId)]));
     const jobsBySource = new Map<string, typeof jobs>();
     for (const job of jobs) jobsBySource.set(job.sourceId, [...(jobsBySource.get(job.sourceId) ?? []), job]);
@@ -17,13 +18,9 @@ export function createAppServer(db: Database) {
       .filter((candidate) => candidate.observationId !== observation.observationId && candidate.observedAt < observation.observedAt);
     const analysisFor = (observation: typeof jobs[number]) => {
       const previous = historyFor(observation)[0] ?? null;
-      return {
-        ...analyzeReciprocity(observation, fieldsByObservation.get(observation.observationId) ?? []),
-        lifecycleState: classifyLifecycleState({ current: observation, previous }),
-        freshness: analyzeFreshness(observation),
-      };
+      return snapshotByObservation.get(observation.observationId) ?? buildObservationAnalysis(observation, previous, fieldsByObservation.get(observation.observationId) ?? []);
     };
-    return { jobs, jobsBySource, historyFor, analysisFor };
+    return { jobs, jobsBySource, historyFor, analysisFor, snapshots };
   };
 
   return {
@@ -31,7 +28,7 @@ export function createAppServer(db: Database) {
       const url = new URL(request.url);
       if (url.pathname === "/api/summary") {
         const context = createContext();
-        const { jobs } = context;
+        const { jobs, snapshots } = context;
         const runs = listScrapeRuns(db);
         const lastKnownGood = [...new Map(runs
           .filter((run) => run.status === "success" && run.healthStatus === "healthy")
@@ -43,6 +40,7 @@ export function createAppServer(db: Database) {
           healEvents: listHealEvents(db),
           validationResults: listValidationResults(db),
           postingEvents: listPostingEvents(db),
+          analysisSnapshots: snapshots,
           sourceConfidence: jobs.map((job) => ({ observationId: job.observationId, sourceId: job.sourceId, confidence: job.sourceConfidence, dataMode: job.dataMode })),
           analyses: jobs.map((job) => ({ observationId: job.observationId, ...context.analysisFor(job) })),
         });

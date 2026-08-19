@@ -196,6 +196,39 @@ export function listApplicationObservation(db: Database, observationId: string):
   };
 }
 
+export interface AnalysisSnapshotRecord {
+  snapshotId: string;
+  observationId: string;
+  analysisVersion: string;
+  generatedAt: string;
+  analysis: Record<string, unknown>;
+}
+
+export function saveAnalysisSnapshot(db: Database, snapshot: AnalysisSnapshotRecord): void {
+  db.query(`INSERT INTO analysis_snapshots
+    (snapshot_id, observation_id, analysis_version, generated_at, analysis_json)
+    VALUES (?, ?, ?, ?, ?)
+    ON CONFLICT(observation_id, analysis_version) DO UPDATE SET
+      snapshot_id = excluded.snapshot_id,
+      generated_at = excluded.generated_at,
+      analysis_json = excluded.analysis_json`)
+    .run(snapshot.snapshotId, snapshot.observationId, snapshot.analysisVersion, snapshot.generatedAt, JSON.stringify(snapshot.analysis));
+}
+
+export function listAnalysisSnapshots(db: Database, observationId?: string): AnalysisSnapshotRecord[] {
+  const rows = observationId
+    ? db.query(`SELECT snapshot_id as snapshotId, observation_id as observationId,
+      analysis_version as analysisVersion, generated_at as generatedAt, analysis_json as analysis
+      FROM analysis_snapshots WHERE observation_id = ? ORDER BY generated_at DESC`).all(observationId)
+    : db.query(`SELECT snapshot_id as snapshotId, observation_id as observationId,
+      analysis_version as analysisVersion, generated_at as generatedAt, analysis_json as analysis
+      FROM analysis_snapshots ORDER BY generated_at DESC`).all();
+  return (rows as Array<Omit<AnalysisSnapshotRecord, "analysis"> & { analysis: string }>).map((row) => ({
+    ...row,
+    analysis: JSON.parse(row.analysis),
+  }));
+}
+
 export function saveInference(db: Database, inference: PostingInference): void {
   db.query("INSERT INTO posting_inferences (type, confidence, signals_json, observation_ids_json) VALUES (?, ?, ?, ?)")
     .run(inference.type, inference.confidence, JSON.stringify(inference.signals), JSON.stringify(inference.observationIds));

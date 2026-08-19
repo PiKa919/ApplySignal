@@ -1,7 +1,8 @@
 import { normalizeJobObservation } from "../domain/normalize";
+import { ANALYSIS_VERSION, buildObservationAnalysis } from "../domain/analysis";
 import { classifyLifecycleState, diffObservations, inferPostingRelationship } from "../domain/lifecycle";
 import { createDatabase } from "../storage/database";
-import { listLatestObservations, saveApplicationFields, saveApplicationObservation, saveInference, saveObservation, savePostingEvent, saveScrapeRun } from "../storage/repository";
+import { listApplicationFields, listLatestObservations, saveAnalysisSnapshot, saveApplicationFields, saveApplicationObservation, saveInference, saveObservation, savePostingEvent, saveScrapeRun } from "../storage/repository";
 import { RECIPROCITY_CATEGORIES, type ApplicationFieldObservation, type ReciprocityCategory } from "../domain/reciprocity";
 import { summarizeApplicationObservation, type ApplicationFieldSignal } from "../domain/application";
 import type { Database } from "bun:sqlite";
@@ -70,6 +71,13 @@ export function ingestCollectorResult(db: Database, result: CollectorRunResult, 
         ...(inference ? { inference } : {}),
       },
     });
+    saveAnalysisSnapshot(db, {
+      snapshotId: `${observation.observationId}:${ANALYSIS_VERSION}`,
+      observationId: observation.observationId,
+      analysisVersion: ANALYSIS_VERSION,
+      generatedAt: observation.observedAt,
+      analysis: buildObservationAnalysis(observation, inferredPrevious, listApplicationFields(db, observation.observationId)),
+    });
     return observation.observationId;
   });
   return { runId: result.runId, sourceId: result.sourceId, observationIds, rowCount: rows.length, dataMode };
@@ -104,5 +112,17 @@ export function ingestApplicationFields(db: Database, observationId: string, pay
   const fields: ApplicationFieldObservation[] = signals.map(({ label, category, required }) => ({ label, category, required }));
   saveApplicationFields(db, observationId, fields);
   saveApplicationObservation(db, observationId, summarizeApplicationObservation({ accountRequired: payload.account_required ?? null, fields: signals }));
+  const observation = listLatestObservations(db).find((candidate) => candidate.observationId === observationId);
+  if (observation) {
+    const previous = listLatestObservations(db, observation.sourceId)
+      .filter((candidate) => candidate.observationId !== observationId && candidate.observedAt < observation.observedAt)[0] ?? null;
+    saveAnalysisSnapshot(db, {
+      snapshotId: `${observationId}:${ANALYSIS_VERSION}`,
+      observationId,
+      analysisVersion: ANALYSIS_VERSION,
+      generatedAt: new Date().toISOString(),
+      analysis: buildObservationAnalysis(observation, previous, listApplicationFields(db, observationId)),
+    });
+  }
   return fields.length;
 }

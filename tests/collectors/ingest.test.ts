@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { createDatabase } from "../../src/storage/database";
 import { expandCollectorRows, ingestCollectorResult } from "../../src/collectors/ingest";
-import { listScrapeRuns } from "../../src/storage/repository";
+import { listAnalysisSnapshots, listScrapeRuns } from "../../src/storage/repository";
 
 test("rejects a successful-looking collector result with silent cardinality loss", () => {
   const db = createDatabase(":memory:");
@@ -60,4 +60,27 @@ test("quarantines structurally invalid output before saving observations", () =>
   } as any)).toThrow("quarantined");
   expect(listScrapeRuns(db)).toMatchObject([{ runId: "run-health", status: "quarantined", healthStatus: "quarantined" }]);
   expect(db.query("SELECT COUNT(*) as count FROM job_observations").get()).toEqual({ count: 0 });
+});
+
+test("persists a versioned analysis snapshot only after a healthy listing is stored", () => {
+  const db = createDatabase(":memory:");
+  ingestCollectorResult(db, {
+    runId: "run-snapshot",
+    collectorId: "c_test",
+    sourceId: "zfh",
+    observedAt: "2026-08-20T00:00:00.000Z",
+    status: "success",
+    rawOutput: "raw",
+    rows: [{ source_job_id: "A", title: "Backend Engineer", location: "Bengaluru", url: "https://example.test/A", description: "Build APIs with TypeScript for the platform team." }],
+    expectedMinimumRows: 1,
+    requiredFields: ["source_job_id", "title", "location"],
+    identityField: "source_job_id",
+    expectedHost: "example.test",
+    minimumCoverage: 1,
+  } as any);
+  expect(listAnalysisSnapshots(db)).toMatchObject([{
+    observationId: expect.any(String),
+    analysisVersion: "reciprocity-v1",
+    analysis: { transparencyScore: expect.any(Number) },
+  }]);
 });

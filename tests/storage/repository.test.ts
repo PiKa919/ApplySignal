@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDatabase } from "../../src/storage/database";
-import { listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, saveApplicationObservation, saveHealEvent, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
+import { listAnalysisSnapshots, listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
 
 test("round-trips observations without collapsing unknown fields", () => {
   const db = createDatabase(":memory:");
@@ -69,6 +69,32 @@ test("round-trips structured application observations without candidate values",
     attachmentCount: 1,
     manualHistoryFields: ["Current CTC"],
   });
+});
+
+test("versioned analysis snapshots round-trip and replace the same observation version", () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-snapshot", sourceId: "zfh", observedAt: "2026-08-20T00:00:00.000Z", title: "Backend" } as any);
+  saveAnalysisSnapshot(db, {
+    snapshotId: "obs-snapshot:reciprocity-v1",
+    observationId: "obs-snapshot",
+    analysisVersion: "reciprocity-v1",
+    generatedAt: "2026-08-20T00:01:00.000Z",
+    analysis: { transparencyScore: 42, lifecycleState: "NEW" },
+  });
+  saveAnalysisSnapshot(db, {
+    snapshotId: "obs-snapshot:reciprocity-v1",
+    observationId: "obs-snapshot",
+    analysisVersion: "reciprocity-v1",
+    generatedAt: "2026-08-20T00:02:00.000Z",
+    analysis: { transparencyScore: 48, lifecycleState: "NEW" },
+  });
+  expect(listAnalysisSnapshots(db)).toEqual([{
+    snapshotId: "obs-snapshot:reciprocity-v1",
+    observationId: "obs-snapshot",
+    analysisVersion: "reciprocity-v1",
+    generatedAt: "2026-08-20T00:02:00.000Z",
+    analysis: { transparencyScore: 48, lifecycleState: "NEW" },
+  }]);
 });
 
 test("keeps application scrape runs distinct from listing runs", () => {
