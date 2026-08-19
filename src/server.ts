@@ -1,6 +1,6 @@
 import { analyzeReciprocity } from "./domain/reciprocity";
 import { diffObservations } from "./domain/lifecycle";
-import { listApplicationFields, listLatestObservations } from "./storage/repository";
+import { listApplicationFields, listLatestObservations, listScrapeRuns } from "./storage/repository";
 import type { Database } from "bun:sqlite";
 
 const json = (value: unknown, status = 200): Response => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -15,6 +15,7 @@ export function createAppServer(db: Database) {
       if (url.pathname === "/api/summary") {
         const jobs = observations();
         return json({
+          runs: listScrapeRuns(db),
           sourceConfidence: jobs.map((job) => ({ observationId: job.observationId, sourceId: job.sourceId, confidence: job.sourceConfidence, dataMode: job.dataMode })),
           analyses: jobs.map((job) => ({ observationId: job.observationId, ...analysisFor(job) })),
         });

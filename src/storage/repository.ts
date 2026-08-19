@@ -14,11 +14,27 @@ export interface ScrapeRunRecord {
   rawOutput: string;
 }
 
+export interface ScrapeRunHealth {
+  runId: string;
+  collectorId: string;
+  sourceId: string;
+  observedAt: string;
+  status: string;
+  rowCount: number;
+  expectedMinimumRows: number | null;
+}
+
 export function saveScrapeRun(db: Database, run: ScrapeRunRecord): void {
   const statement = db.query(`INSERT OR REPLACE INTO scrape_runs
     (run_id, collector_id, source_id, observed_at, status, row_count, expected_minimum_rows, raw_output)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
   statement.run(run.runId, run.collectorId, run.sourceId, run.observedAt, run.status, run.rowCount, run.expectedMinimumRows, run.rawOutput);
+}
+
+export function listScrapeRuns(db: Database): ScrapeRunHealth[] {
+  return db.query(`SELECT run_id as runId, collector_id as collectorId, source_id as sourceId,
+    observed_at as observedAt, status, row_count as rowCount, expected_minimum_rows as expectedMinimumRows
+    FROM scrape_runs ORDER BY observed_at DESC`).all() as ScrapeRunHealth[];
 }
 
 export function saveObservation(db: Database, observation: JobObservation & { dataMode?: "live" | "fixture" }): void {
