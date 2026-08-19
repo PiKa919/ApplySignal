@@ -17,6 +17,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Candidate | Current decision | Evidence/status |
 | --- | --- | --- |
 | Zerodha Fund House | Keep as first custom collector | Custom Scraper Studio collector created and live-run successfully; no matching CLI pipeline listed |
+| Palantir Lever fallback | Keep as second live collector | Custom Scraper Studio collector completed; batch run returned 307 public listing rows |
 | Visa | Pending | Candidate-specific Marketplace/library lookup still required |
 | Cadence | Unresolved generation | `c_mt0il1zsoiz0umxxe` reached code generation but did not complete during bounded polling |
 | BrowserStack | Unresolved generation | `c_mt0iq7oysxok3r6q4` reached preview picker but did not complete during bounded polling |
@@ -37,6 +38,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Razorpay Greenhouse board | `c_mt0hxxvn1inyto72ik` | Generation remained in code generation after bounded polling | Unresolved; no live output claimed |
 | Cadence Workday | `c_mt0il1zsoiz0umxxe` | Generation reached code generation at attempt 181 when bounded polling stopped | Unresolved; no live output claimed |
 | BrowserStack Workday | `c_mt0iq7oysxok3r6q4` | Generation reached preview picker at attempt 183 when bounded polling stopped | Unresolved; no live output claimed |
+| Palantir Lever fallback | `c_mt0ivvftqptif51k9` | Completed; realtime switched to batch after page limit and returned 307 successful rows | Live listing dataset ingested; batch handoff retained as run evidence |
 
 ## Collector created
 
