@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { assessCollectorRows } from "../../src/collectors/health";
+import { assessCollectorRows, compareDistributionalHealth } from "../../src/collectors/health";
 
 test("quarantines a structurally anomalous run despite a healthy row count", () => {
   const report = assessCollectorRows([
@@ -53,4 +53,15 @@ test("rejects an exact closing date earlier than an exact posted date", () => {
 
   expect(report.status).toBe("quarantined");
   expect(report.errors).toContain("closing date precedes posted date");
+});
+
+test("reports distributional drift without authorizing automatic healing", () => {
+  const baseline = { recordCount: 100, fieldCoverage: { location: 0.98, title: 1 } };
+  const current = { recordCount: 70, fieldCoverage: { location: 0.12, title: 1 } };
+  const comparison = compareDistributionalHealth(current, baseline);
+
+  expect(comparison.status).toBe("changed");
+  expect(comparison.anomalies).toEqual(expect.arrayContaining(["record count dropped by 30%", "field coverage changed materially: location"]));
+  expect(comparison.requiresReview).toBe(true);
+  expect(comparison.automaticHeal).toBe(false);
 });

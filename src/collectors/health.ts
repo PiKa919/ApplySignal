@@ -16,6 +16,20 @@ export interface CollectorHealthReport {
   errors: string[];
 }
 
+export interface DistributionalHealthSnapshot {
+  recordCount: number;
+  fieldCoverage: Record<string, number>;
+}
+
+export interface DistributionalHealthComparison {
+  status: "stable" | "changed";
+  anomalies: string[];
+  requiresReview: boolean;
+  automaticHeal: false;
+  recordCountDeltaRatio: number | null;
+  fieldCoverageDelta: Record<string, number>;
+}
+
 const present = (value: unknown): boolean => value !== null && value !== undefined && String(value).trim().length > 0;
 const locationPattern = /\b(?:bengaluru|bangalore|pune|mumbai|hyderabad|delhi|london|remote|india|united states|new york|san francisco)\b/i;
 const titlePattern = /\b(?:engineer|developer|designer|manager|scientist|analyst|architect|director|intern|counsel|recruiter)\b/i;
@@ -61,4 +75,16 @@ export function assessCollectorRows(rows: Record<string, unknown>[], contract: C
   }
 
   return { status: errors.length === 0 ? "healthy" : "quarantined", recordCount: rows.length, fieldCoverage, duplicateIdentityCount, unexpectedHostCount, semanticErrorCount, errors };
+}
+
+export function compareDistributionalHealth(current: DistributionalHealthSnapshot, baseline: DistributionalHealthSnapshot): DistributionalHealthComparison {
+  const anomalies: string[] = [];
+  const recordCountDeltaRatio = baseline.recordCount === 0 ? null : (current.recordCount - baseline.recordCount) / baseline.recordCount;
+  if (recordCountDeltaRatio !== null && recordCountDeltaRatio <= -0.25) anomalies.push(`record count dropped by ${Math.round(Math.abs(recordCountDeltaRatio) * 100)}%`);
+  const fields = new Set([...Object.keys(current.fieldCoverage), ...Object.keys(baseline.fieldCoverage)]);
+  const fieldCoverageDelta = Object.fromEntries([...fields].map((field) => [field, (current.fieldCoverage[field] ?? 0) - (baseline.fieldCoverage[field] ?? 0)]));
+  for (const [field, delta] of Object.entries(fieldCoverageDelta)) {
+    if (Math.abs(delta) >= 0.25) anomalies.push(`field coverage changed materially: ${field}`);
+  }
+  return { status: anomalies.length === 0 ? "stable" : "changed", anomalies, requiresReview: anomalies.length > 0, automaticHeal: false, recordCountDeltaRatio, fieldCoverageDelta };
 }

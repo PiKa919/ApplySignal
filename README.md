@@ -62,7 +62,7 @@ Collector creation and live runs are paid external actions. The project keeps on
 
 The collector CLI also skips a successful run for the same collector/source within the default 24-hour cooldown before invoking Bright Data. Set `BRIGHTDATA_COOLDOWN_HOURS=0` for a deliberate no-cooldown run, or set `APPLYSIGNAL_FORCE_PAID_RUN=true` when an explicit rerun is justified.
 
-Ingestion applies a structural and semantic health gate after envelope expansion: minimum cardinality, required-field coverage, duplicate identity detection, expected URL-host checks, obvious title/location swaps, and impossible exact date ordering. A suspicious result is persisted as `quarantined` with its health report and produces no job observations. Distribution changes are evidence only and do not trigger automatic healing by themselves.
+Ingestion applies a structural and semantic health gate after envelope expansion: minimum cardinality, required-field coverage, duplicate identity detection, expected URL-host checks, obvious title/location swaps, and impossible exact date ordering. A suspicious result is persisted as `quarantined` with its health report and produces no job observations. `compareDistributionalHealth` reports baseline drift as review evidence; distribution changes do not trigger automatic healing by themselves.
 
 Every catalog entry also declares its observation scope (`all_jobs`, `subset`, or `talent_pool`, plus geography and career filters). Health and cardinality claims are interpreted within that scope; a scoped zero is not treated as a failed full-board scrape.
 
