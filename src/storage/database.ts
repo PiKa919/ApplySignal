@@ -1,4 +1,6 @@
 import { Database } from "bun:sqlite";
+import { mkdirSync } from "node:fs";
+import { dirname } from "node:path";
 
 const schema = `
 PRAGMA foreign_keys = ON;
@@ -56,6 +58,7 @@ CREATE TABLE IF NOT EXISTS posting_inferences (
 `;
 
 export function createDatabase(path: string): Database {
+  if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
   db.exec(schema);
   return db;
