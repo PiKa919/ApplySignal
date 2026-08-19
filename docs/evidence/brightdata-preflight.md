@@ -21,7 +21,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Visa | Pending | Candidate-specific Marketplace/library lookup still required |
 | Cadence | Unresolved generation | `c_mt0il1zsoiz0umxxe` reached code generation but did not complete during bounded polling |
 | BrowserStack | Unresolved generation | `c_mt0iq7oysxok3r6q4` reached preview picker but did not complete during bounded polling |
-| Meesho | Pending | Candidate-specific Marketplace/library lookup still required |
+| Meesho | Failed generation | Two custom Scraper Studio generation attempts failed; no live data claimed |
 | CRED | Pending | Candidate-specific Marketplace/library lookup still required |
 | Postman | Validation candidate | Greenhouse oracle is useful; custom-source eligibility still requires lookup |
 | Razorpay | Keep as live candidate | Direct Greenhouse board collector completed and returned 26 public listing rows |
@@ -32,6 +32,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | --- | --- | --- | --- |
 | Visa Workday | `c_mt0hdncdvl5pdsf61` | Generation stalled during code/preview polling; no completed artifact | Dynamic Workday structure is a demonstrated source risk, not a usable source |
 | Meesho | `c_mt0hdp0f1cpuyp09vq` | Bright Data returned `status: failed` after template creation | Template failure is recorded as source-confidence evidence; do not ingest as live data |
+| Meesho retry | `c_mt0jywoc3netn7272` | Narrower visible-card schema still failed during intent analysis at attempt 22 | Unresolved; no live output claimed; half-built collector requires manual UI deletion if desired |
 | Postman branded careers | `c_mt0hhp8o2dj4euge69` | Generation remained in code/preview polling when bounded run was stopped | Unresolved; no live output claimed |
 | Postman Greenhouse board | `c_mt0jgbmgtpeo9ghcx` | Generation reached preview picker at attempt 180 when bounded polling stopped | Unresolved; no live output claimed |
 | CRED openings | `c_mt0hphi210sst7z27` | Generation reached preview-picker but remained unresolved after bounded polling | Unresolved; no live output claimed |
