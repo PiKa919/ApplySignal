@@ -9,7 +9,11 @@ test("builds a collector request from non-secret environment configuration", () 
     BRIGHTDATA_SOURCE_URL: "https://example.test/jobs",
     BRIGHTDATA_TARGET_URL: "https://example.test/jobs",
     BRIGHTDATA_MIN_ROWS: "3",
-  })).toEqual({ collectorId: "c_test", sourceId: "zfh", sourceUrl: "https://example.test/jobs", url: "https://example.test/jobs", expectedMinimumRows: 3 });
+    BRIGHTDATA_REQUIRED_FIELDS: "source_job_id, title, location",
+    BRIGHTDATA_IDENTITY_FIELD: "source_job_id",
+    BRIGHTDATA_EXPECTED_HOST: "example.test",
+    BRIGHTDATA_MIN_COVERAGE: "0.8",
+  })).toEqual({ collectorId: "c_test", sourceId: "zfh", sourceUrl: "https://example.test/jobs", url: "https://example.test/jobs", expectedMinimumRows: 3, requiredFields: ["source_job_id", "title", "location"], identityField: "source_job_id", expectedHost: "example.test", minimumCoverage: 0.8 });
 });
 
 test("rejects a collector command without an ID", () => {
@@ -23,4 +27,8 @@ test("skips a recent successful run unless an explicit force flag is set", () =>
 
   expect(shouldSkipPaidRun(runs, request, now)).toEqual({ skip: true, reason: "recent_success" });
   expect(shouldSkipPaidRun(runs, request, now, { force: true })).toEqual({ skip: false });
+});
+
+test("rejects an invalid field-coverage threshold", () => {
+  expect(() => collectorRequestFromEnv({ BRIGHTDATA_COLLECTOR_ID: "c_test", BRIGHTDATA_SOURCE_ID: "zfh", BRIGHTDATA_MIN_COVERAGE: "1.2" })).toThrow("BRIGHTDATA_MIN_COVERAGE");
 });

@@ -4,6 +4,19 @@ export interface CollectorRequest {
   sourceUrl?: string;
   url?: string;
   expectedMinimumRows?: number;
+  requiredFields?: string[];
+  identityField?: string;
+  expectedHost?: string;
+  minimumCoverage?: number;
+}
+
+export interface CollectorTransportEvidence {
+  navigationSucceeded?: boolean;
+  httpStatus?: number;
+  finalUrl?: string;
+  contentType?: string;
+  bodyBytes?: number;
+  blocked?: boolean;
 }
 
 export interface CollectorRunResult {
@@ -21,6 +34,7 @@ export interface CollectorRunResult {
   identityField?: string;
   expectedHost?: string;
   minimumCoverage?: number;
+  transport?: CollectorTransportEvidence;
 }
 
 export async function runBrightDataCollector(request: CollectorRequest): Promise<CollectorRunResult> {
@@ -40,8 +54,8 @@ export async function runBrightDataCollector(request: CollectorRequest): Promise
       const parsed: unknown = JSON.parse(stdout);
       rows = Array.isArray(parsed) ? parsed as Record<string, unknown>[] : [parsed as Record<string, unknown>];
     } catch {
-    return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: "failed", rawOutput: stdout, stderr: `${stderr}\nBright Data output was not valid JSON.`, rows: [], expectedMinimumRows: request.expectedMinimumRows ?? 1 };
+    return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: "failed", rawOutput: stdout, stderr: `${stderr}\nBright Data output was not valid JSON.`, rows: [], expectedMinimumRows: request.expectedMinimumRows ?? 1, requiredFields: request.requiredFields, identityField: request.identityField, expectedHost: request.expectedHost, minimumCoverage: request.minimumCoverage };
     }
   }
-  return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: exitCode === 0 ? "success" : "failed", rawOutput: stdout, stderr, rows, expectedMinimumRows: request.expectedMinimumRows ?? 1 };
+  return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: exitCode === 0 ? "success" : "failed", rawOutput: stdout, stderr, rows, expectedMinimumRows: request.expectedMinimumRows ?? 1, requiredFields: request.requiredFields, identityField: request.identityField, expectedHost: request.expectedHost, minimumCoverage: request.minimumCoverage };
 }

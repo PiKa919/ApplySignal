@@ -32,7 +32,7 @@ export function expandCollectorRows(rows: Record<string, unknown>[]): RawJobRow[
 
 export function ingestCollectorResult(db: Database, result: CollectorRunResult, dataMode: "live" | "fixture" = "live"): IngestSummary {
   const rows = expandCollectorRows(result.rows);
-  const health = assessCollectorRows(rows, { minimumRows: result.expectedMinimumRows, requiredFields: result.requiredFields, identityField: result.identityField, expectedHost: result.expectedHost, minimumCoverage: result.minimumCoverage });
+  const health = assessCollectorRows(rows, { minimumRows: result.expectedMinimumRows, requiredFields: result.requiredFields, identityField: result.identityField, expectedHost: result.expectedHost, minimumCoverage: result.minimumCoverage, transport: result.transport });
   const run = (status: string, report: CollectorHealthReport = health) => saveScrapeRun(db, { runId: result.runId, collectorId: result.collectorId, sourceId: result.sourceId, observedAt: result.observedAt, status, rowCount: rows.length, expectedMinimumRows: result.expectedMinimumRows, healthStatus: report.status, healthReport: report, rawOutput: result.rawOutput });
   if (result.status !== "success") {
     run("failed", { ...health, status: "quarantined", errors: [...health.errors, result.stderr || "collector failed"] });

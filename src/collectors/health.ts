@@ -4,6 +4,16 @@ export interface CollectorHealthContract {
   identityField?: string;
   expectedHost?: string;
   minimumCoverage?: number;
+  transport?: TransportHealthEvidence;
+}
+
+export interface TransportHealthEvidence {
+  navigationSucceeded?: boolean;
+  httpStatus?: number;
+  finalUrl?: string;
+  contentType?: string;
+  bodyBytes?: number;
+  blocked?: boolean;
 }
 
 export interface CollectorHealthReport {
@@ -13,6 +23,8 @@ export interface CollectorHealthReport {
   duplicateIdentityCount: number;
   unexpectedHostCount: number;
   semanticErrorCount: number;
+  transportStatus: "unknown" | "healthy" | "quarantined";
+  transportErrors: string[];
   errors: string[];
 }
 
@@ -53,6 +65,22 @@ const titlePattern = /\b(?:engineer|developer|designer|manager|scientist|analyst
 
 export function assessCollectorRows(rows: Record<string, unknown>[], contract: CollectorHealthContract): CollectorHealthReport {
   const errors: string[] = [];
+  const transportErrors: string[] = [];
+  const transport = contract.transport;
+  if (transport) {
+    if (transport.navigationSucceeded === false) transportErrors.push("navigation failed");
+    if (transport.httpStatus !== undefined && (transport.httpStatus < 200 || transport.httpStatus >= 400)) transportErrors.push(`unexpected HTTP status: ${transport.httpStatus}`);
+    if (transport.finalUrl && contract.expectedHost) {
+      try {
+        if (new URL(transport.finalUrl).host !== contract.expectedHost) transportErrors.push("unexpected final URL host");
+      } catch {
+        transportErrors.push("invalid final URL");
+      }
+    }
+    if (transport.bodyBytes !== undefined && transport.bodyBytes <= 0) transportErrors.push("empty response body");
+    if (transport.blocked === true) transportErrors.push("block or CAPTCHA indicator detected");
+  }
+  errors.push(...transportErrors);
   const fieldCoverage = Object.fromEntries((contract.requiredFields ?? []).map((field) => [field, rows.length === 0 ? 0 : rows.filter((row) => present(row[field])).length / rows.length]));
   const minimumCoverage = contract.minimumCoverage ?? 1;
   for (const [field, coverage] of Object.entries(fieldCoverage)) {
@@ -91,7 +119,7 @@ export function assessCollectorRows(rows: Record<string, unknown>[], contract: C
     }
   }
 
-  return { status: errors.length === 0 ? "healthy" : "quarantined", recordCount: rows.length, fieldCoverage, duplicateIdentityCount, unexpectedHostCount, semanticErrorCount, errors };
+  return { status: errors.length === 0 ? "healthy" : "quarantined", recordCount: rows.length, fieldCoverage, duplicateIdentityCount, unexpectedHostCount, semanticErrorCount, transportStatus: !transport ? "unknown" : transportErrors.length > 0 ? "quarantined" : "healthy", transportErrors, errors };
 }
 
 export function compareDistributionalHealth(current: DistributionalHealthSnapshot, baseline: DistributionalHealthSnapshot): DistributionalHealthComparison {

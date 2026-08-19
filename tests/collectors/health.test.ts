@@ -91,3 +91,25 @@ test("does not produce a healing prompt for a stable comparison", () => {
     prompt: null,
   });
 });
+
+test("quarantines an explicit transport block even when rows look complete", () => {
+  const report = assessCollectorRows([
+    { job_id: "A", title: "Backend", location: "Pune", url: "https://jobs.example.test/A" },
+  ], {
+    minimumRows: 1,
+    requiredFields: ["job_id", "title", "location"],
+    identityField: "job_id",
+    expectedHost: "jobs.example.test",
+    transport: { navigationSucceeded: true, httpStatus: 200, finalUrl: "https://jobs.example.test/A", bodyBytes: 12, blocked: true },
+  });
+
+  expect(report.status).toBe("quarantined");
+  expect(report.transportStatus).toBe("quarantined");
+  expect(report.transportErrors).toContain("block or CAPTCHA indicator detected");
+});
+
+test("keeps transport confidence unknown when no transport evidence is supplied", () => {
+  const report = assessCollectorRows([{ job_id: "A", title: "Backend", location: "Pune" }], { minimumRows: 1 });
+  expect(report.transportStatus).toBe("unknown");
+  expect(report.transportErrors).toEqual([]);
+});

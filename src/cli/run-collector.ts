@@ -13,7 +13,20 @@ export function collectorRequestFromEnv(env: CollectorEnvironment): CollectorReq
   if (!sourceId) throw new Error("BRIGHTDATA_SOURCE_ID is required");
   const minimum = Number(env.BRIGHTDATA_MIN_ROWS ?? "1");
   if (!Number.isInteger(minimum) || minimum < 0) throw new Error("BRIGHTDATA_MIN_ROWS must be a non-negative integer");
-  return { collectorId, sourceId, sourceUrl: env.BRIGHTDATA_SOURCE_URL, url: env.BRIGHTDATA_TARGET_URL, expectedMinimumRows: minimum };
+  const requiredFields = (env.BRIGHTDATA_REQUIRED_FIELDS ?? "").split(",").map((field) => field.trim()).filter(Boolean);
+  const minimumCoverage = env.BRIGHTDATA_MIN_COVERAGE === undefined || env.BRIGHTDATA_MIN_COVERAGE.trim() === "" ? undefined : Number(env.BRIGHTDATA_MIN_COVERAGE);
+  if (minimumCoverage !== undefined && (!Number.isFinite(minimumCoverage) || minimumCoverage < 0 || minimumCoverage > 1)) throw new Error("BRIGHTDATA_MIN_COVERAGE must be between 0 and 1");
+  return {
+    collectorId,
+    sourceId,
+    sourceUrl: env.BRIGHTDATA_SOURCE_URL,
+    url: env.BRIGHTDATA_TARGET_URL,
+    expectedMinimumRows: minimum,
+    ...(requiredFields.length > 0 ? { requiredFields } : {}),
+    ...(env.BRIGHTDATA_IDENTITY_FIELD?.trim() ? { identityField: env.BRIGHTDATA_IDENTITY_FIELD.trim() } : {}),
+    ...(env.BRIGHTDATA_EXPECTED_HOST?.trim() ? { expectedHost: env.BRIGHTDATA_EXPECTED_HOST.trim() } : {}),
+    ...(minimumCoverage !== undefined ? { minimumCoverage } : {}),
+  };
 }
 
 export async function runCollectorFromEnv(env: CollectorEnvironment = process.env): Promise<void> {
