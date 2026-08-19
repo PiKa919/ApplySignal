@@ -20,6 +20,13 @@ test("dashboard includes active source coverage metrics", async () => {
   expect(await response.text()).toContain("ACTIVE SOURCES");
 });
 
+test("job detail UI includes evidence links and raw observed fields", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(body).toContain("RAW OBSERVED FIELDS");
+  expect(body).toContain("Source URL");
+});
+
 test("summary endpoint exposes collector health separately from observations", async () => {
   const db = createDatabase(":memory:");
   saveScrapeRun(db, { runId: "run-1", collectorId: "collector-1", sourceId: "visa", observedAt: "2026-08-20T00:00:00.000Z", status: "failed", rowCount: 0, expectedMinimumRows: 1, rawOutput: "" });

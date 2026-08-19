@@ -7,6 +7,18 @@ const health = document.querySelector("#health")!;
 type Job = { observationId: string; title: string | null; location: string | null; dataMode: string; sourceConfidence: number | null; analysis: { gapLabel: string; explanation: string; requestedFieldCount: number; disclosedCount: number } };
 
 const esc = (value: unknown) => String(value ?? "Unknown").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]!));
+const safeHref = (value: unknown): string | null => {
+  try {
+    const parsed = new URL(String(value));
+    return parsed.protocol === "http:" || parsed.protocol === "https:" ? esc(parsed.toString()) : null;
+  } catch {
+    return null;
+  }
+};
+const evidenceLink = (label: string, value: unknown): string => {
+  const href = safeHref(value);
+  return `<div><div class="detail-label">${esc(label)}</div><div class="detail-value">${href ? `<a href="${href}" target="_blank" rel="noreferrer">Open evidence</a>` : esc(value)}</div></div>`;
+};
 
 async function load() {
   const [summary, jobResponse] = await Promise.all([fetch("/api/summary").then((r) => r.json()), fetch("/api/jobs").then((r) => r.json())]);
@@ -34,7 +46,11 @@ async function load() {
 async function showDetail(id: string) {
   const job = await fetch(`/api/jobs/${encodeURIComponent(id)}`).then((r) => r.json());
   detail.classList.remove("empty");
-  detail.innerHTML = `<p class="eyebrow">OBSERVATION EVIDENCE</p><h2>${esc(job.title)}</h2><p>${esc(job.location)} · ${esc(job.dataMode)} data · source confidence ${Math.round((job.sourceConfidence ?? 0) * 100)}%</p><div class="detail-section"><div class="detail-grid"><div><div class="detail-label">Disclosed categories</div><div class="detail-value">${job.analysis.disclosedCount}</div></div><div><div class="detail-label">Requested fields</div><div class="detail-value">${job.analysis.requestedFieldCount}</div></div></div><p><strong>${esc(job.analysis.gapLabel)}</strong><br>${esc(job.analysis.explanation)}</p></div><div class="detail-section"><div class="detail-label">Application burden fields</div>${job.fields?.length ? `<ul>${job.fields.map((field: { label: string; required: boolean | null }) => `<li>${esc(field.label)} ${field.required === true ? "(required)" : "(unknown)"}</li>`).join("")}</ul>` : `<p>Not observed.</p>`}</div><div class="detail-section"><div class="detail-label">Lifecycle changes</div>${job.diffs?.length ? `<ul>${job.diffs.flatMap((diff: { changes: { field: string; before: unknown; after: unknown }[] }) => diff.changes.map((change) => `<li>${esc(change.field)}: ${esc(change.before)} → ${esc(change.after)}</li>`)).join("")}</ul>` : `<p>No comparison observations.</p>`}</div><div class="detail-section"><div class="detail-label">Inferences</div>${job.inferences?.length ? `<ul>${job.inferences.map((inference: { type: string; confidence: number; signals: string[] }) => `<li><span class="badge inferred">${esc(inference.type)}</span> ${Math.round(inference.confidence * 100)}% confidence — ${esc(inference.signals.join("; "))}</li>`).join("")}</ul>` : `<p>No bounded relationship inference.</p>`}</div>`;
+  const provenance = Object.entries(job.provenance ?? {}).map(([field, value]) => {
+    const raw = typeof value === "object" && value !== null && "raw" in value ? (value as { raw: unknown }).raw : "unknown";
+    return `<li>${esc(field)}: ${esc(raw)}</li>`;
+  }).join("");
+  detail.innerHTML = `<p class="eyebrow">OBSERVATION EVIDENCE</p><h2>${esc(job.title)}</h2><p>${esc(job.location)} · ${esc(job.dataMode)} data · source confidence ${Math.round((job.sourceConfidence ?? 0) * 100)}%</p><div class="detail-section"><div class="detail-grid">${evidenceLink("Source URL", job.sourceUrl)}${evidenceLink("Listing URL", job.url)}${evidenceLink("Application URL", job.applicationUrl)}<div><div class="detail-label">Observed at</div><div class="detail-value">${esc(job.observedAt)}</div></div></div></div><div class="detail-section"><div class="detail-label">Disclosed categories</div><div class="detail-grid"><div><div class="detail-label">Count</div><div class="detail-value">${job.analysis.disclosedCount}</div></div><div><div class="detail-label">Requested fields</div><div class="detail-value">${job.analysis.requestedFieldCount}</div></div></div><p><strong>${esc(job.analysis.gapLabel)}</strong><br>${esc(job.analysis.explanation)}</p></div><div class="detail-section"><div class="detail-label">RAW OBSERVED FIELDS</div>${provenance ? `<ul>${provenance}</ul>` : `<p>No raw field labels stored.</p>`}</div><div class="detail-section"><div class="detail-label">Application burden fields</div>${job.fields?.length ? `<ul>${job.fields.map((field: { label: string; required: boolean | null }) => `<li>${esc(field.label)} ${field.required === true ? "(required)" : "(unknown)"}</li>`).join("")}</ul>` : `<p>Not observed.</p>`}</div><div class="detail-section"><div class="detail-label">Lifecycle changes</div>${job.diffs?.length ? `<ul>${job.diffs.flatMap((diff: { changes: { field: string; before: unknown; after: unknown }[] }) => diff.changes.map((change) => `<li>${esc(change.field)}: ${esc(change.before)} → ${esc(change.after)}</li>`)).join("")}</ul>` : `<p>No comparison observations.</p>`}</div><div class="detail-section"><div class="detail-label">Inferences</div>${job.inferences?.length ? `<ul>${job.inferences.map((inference: { type: string; confidence: number; signals: string[] }) => `<li><span class="badge inferred">${esc(inference.type)}</span> ${Math.round(inference.confidence * 100)}% confidence — ${esc(inference.signals.join("; "))}</li>`).join("")}</ul>` : `<p>No bounded relationship inference.</p>`}</div>`;
 }
 
 load().catch((error) => { detail.innerHTML = `<p>Dashboard error: ${esc(error)}</p>`; });
