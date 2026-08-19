@@ -32,3 +32,25 @@ test("accepts a complete run and keeps coverage as evidence", () => {
   expect(report.fieldCoverage).toEqual({ job_id: 1, title: 1, location: 1 });
   expect(report.errors).toEqual([]);
 });
+
+test("quarantines obvious title and location field swaps", () => {
+  const report = assessCollectorRows([
+    { job_id: "A", title: "Bengaluru", location: "Senior Software Engineer", url: "https://jobs.example.test/A" },
+  ], { minimumRows: 1, requiredFields: ["job_id", "title", "location"], identityField: "job_id", expectedHost: "jobs.example.test" });
+
+  expect(report.status).toBe("quarantined");
+  expect(report.semanticErrorCount).toBe(2);
+  expect(report.errors).toEqual(expect.arrayContaining([
+    "semantic field swap: title resembles a location",
+    "semantic field swap: location resembles a title",
+  ]));
+});
+
+test("rejects an exact closing date earlier than an exact posted date", () => {
+  const report = assessCollectorRows([
+    { job_id: "A", title: "Backend", location: "Pune", posted_date: "2026-08-20", closing_date: "2026-08-19", url: "https://jobs.example.test/A" },
+  ], { minimumRows: 1, requiredFields: ["job_id", "title", "location"], identityField: "job_id", expectedHost: "jobs.example.test" });
+
+  expect(report.status).toBe("quarantined");
+  expect(report.errors).toContain("closing date precedes posted date");
+});
