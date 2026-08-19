@@ -1,4 +1,4 @@
-export type SourceCatalogStatus = "live" | "failed_generation" | "partial" | "unresolved" | "preflight_pending";
+export type SourceCatalogStatus = "live" | "live_scoped" | "failed_generation" | "partial" | "unresolved" | "preflight_pending";
 
 export interface SourceCatalogEntry {
   sourceId: string;
@@ -12,7 +12,7 @@ export interface SourceCatalogEntry {
 export const SOURCE_CATALOG: SourceCatalogEntry[] = [
   { sourceId: "zfh", name: "Zerodha Fund House", url: "https://careers.zerodhafundhouse.com/jobs", status: "live", role: "hero", note: "13 listing rows and 17 public application fields verified." },
   { sourceId: "palantir", name: "Palantir Lever", url: "https://jobs.lever.co/palantir", status: "live", role: "candidate", note: "307 public listing rows verified through a custom Scraper Studio collector and batch run." },
-  { sourceId: "visa", name: "Visa Workday", url: "https://visa.wd5.myworkdayjobs.com/Visa", status: "failed_generation", role: "candidate", note: "Bright Data template generation stalled on the dynamic Workday surface." },
+  { sourceId: "visa", name: "Visa Workday", url: "https://visa.wd5.myworkdayjobs.com/Visa", status: "live_scoped", role: "candidate", note: "One public Workday detail page is live and normalized; full-board generation remains unresolved." },
   { sourceId: "cadence", name: "Cadence Workday", url: "https://cadence.wd1.myworkdayjobs.com/en-US/External_Careers", status: "unresolved", role: "candidate", note: "Collector c_mt0il1zsoiz0umxxe reached code generation but did not complete during bounded polling." },
   { sourceId: "browserstack", name: "BrowserStack Workday", url: "https://browserstack.wd3.myworkdayjobs.com/External", status: "unresolved", role: "candidate", note: "Collector c_mt0iq7oysxok3r6q4 reached preview picker but did not complete during bounded polling." },
   { sourceId: "meesho", name: "Meesho Careers", url: "https://www.meesho.io/jobs", status: "failed_generation", role: "candidate", note: "Bright Data collectors c_mt0hdp0f1cpuyp09vq and c_mt0jywoc3netn7272 both failed during generation." },

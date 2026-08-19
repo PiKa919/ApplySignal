@@ -27,7 +27,7 @@ test("summary endpoint exposes source catalog states without treating them as ob
   const body = await response.json();
   expect(body.sourceCatalog).toEqual(expect.arrayContaining([
     expect.objectContaining({ sourceId: "zfh", status: "live" }),
-    expect.objectContaining({ sourceId: "visa", status: "failed_generation" }),
+    expect.objectContaining({ sourceId: "visa", status: "live_scoped" }),
   ]));
 });
 

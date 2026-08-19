@@ -18,7 +18,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | --- | --- | --- |
 | Zerodha Fund House | Keep as first custom collector | Custom Scraper Studio collector created and live-run successfully; no matching CLI pipeline listed |
 | Palantir Lever fallback | Keep as second live collector | Custom Scraper Studio collector completed; batch run returned 307 public listing rows |
-| Visa | Pending | Candidate-specific Marketplace/library lookup still required |
+| Visa | Live scoped detail | One public Workday detail collector completed; full-board generation remains unresolved |
 | Cadence | Unresolved generation | `c_mt0il1zsoiz0umxxe` reached code generation but did not complete during bounded polling |
 | BrowserStack | Unresolved generation | `c_mt0iq7oysxok3r6q4` reached preview picker but did not complete during bounded polling |
 | Meesho | Failed generation | Two custom Scraper Studio generation attempts failed; no live data claimed |
@@ -31,6 +31,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Target | Collector | Outcome | Interpretation |
 | --- | --- | --- | --- |
 | Visa Workday | `c_mt0hdncdvl5pdsf61` | Generation stalled during code/preview polling; no completed artifact | Dynamic Workday structure is a demonstrated source risk, not a usable source |
+| Visa Workday detail | `c_mt0k0jqb14b08r1uxz` | Completed against a public detail page; returned one successful row | Live scoped observation ingested; do not treat it as full-board cardinality |
 | Meesho | `c_mt0hdp0f1cpuyp09vq` | Bright Data returned `status: failed` after template creation | Template failure is recorded as source-confidence evidence; do not ingest as live data |
 | Meesho retry | `c_mt0jywoc3netn7272` | Narrower visible-card schema still failed during intent analysis at attempt 22 | Unresolved; no live output claimed; half-built collector requires manual UI deletion if desired |
 | Postman branded careers | `c_mt0hhp8o2dj4euge69` | Generation remained in code/preview polling when bounded run was stopped | Unresolved; no live output claimed |
