@@ -14,6 +14,8 @@ Its central view is the Reciprocity Gap: an explainable comparison between discl
 
 Application analysis also exposes a Resume Re-entry Tax: the count and severity of public employment, education, compensation-history, experience, and current-employer fields requested in addition to a resume.
 
+Posting flags distinguish `TALENT_POOL`, `EXPLICIT_EVERGREEN`, and `EVERGREEN_LIKE` patterns. These are deterministic labels from observed title/description text, not claims that an ordinary listing is stale, fraudulent, or a single vacancy.
+
 ## Run locally
 
 Requires Bun.

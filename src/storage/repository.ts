@@ -3,6 +3,9 @@ import type { JobObservation } from "../domain/observations";
 import type { ApplicationFieldObservation } from "../domain/reciprocity";
 import type { PostingInference } from "../domain/lifecycle";
 import type { JobIdComparison } from "../domain/validation";
+import { classifyPostingFlags } from "../domain/normalize";
+
+const DEFAULT_FLAGS = { explicitEvergreen: false, evergreenLike: false, talentPool: false, multipleOpenings: false } as const;
 
 export interface ScrapeRunRecord {
   runId: string;
@@ -48,8 +51,8 @@ export function saveObservation(db: Database, observation: JobObservation & { da
   const statement = db.query(`INSERT OR REPLACE INTO job_observations
     (observation_id, source_id, source_url, observed_at, source_job_id, title, location, employment_type,
      posted_date, posted_date_quality, closing_date, closing_date_quality, description, salary, application_url,
-     url, provenance_json, source_confidence, data_mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+     url, provenance_json, source_confidence, flags_json, data_mode)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   statement.run(
     observation.observationId,
     observation.sourceId,
@@ -69,6 +72,7 @@ export function saveObservation(db: Database, observation: JobObservation & { da
     observation.url ?? null,
     JSON.stringify(observation.provenance ?? {}),
     observation.sourceConfidence ?? null,
+    JSON.stringify(observation.flags ?? DEFAULT_FLAGS),
     observation.dataMode ?? "live",
   );
 }
@@ -92,10 +96,14 @@ interface ObservationRow {
   url: string | null;
   provenance_json: string;
   source_confidence: number | null;
+  flags_json: string;
   data_mode: "live" | "fixture";
 }
 
-const hydrate = (row: ObservationRow): JobObservation & { dataMode: "live" | "fixture" } => ({
+const hydrate = (row: ObservationRow): JobObservation & { dataMode: "live" | "fixture" } => {
+  const storedFlags = { ...DEFAULT_FLAGS, ...JSON.parse(row.flags_json || "{}") };
+  const derivedFlags = classifyPostingFlags(row.title, row.description);
+  return {
   observationId: row.observation_id,
   sourceId: row.source_id,
   sourceUrl: row.source_url ?? "",
@@ -114,8 +122,15 @@ const hydrate = (row: ObservationRow): JobObservation & { dataMode: "live" | "fi
   url: row.url,
   provenance: JSON.parse(row.provenance_json),
   sourceConfidence: row.source_confidence,
+  flags: {
+    explicitEvergreen: storedFlags.explicitEvergreen || derivedFlags.explicitEvergreen,
+    evergreenLike: storedFlags.evergreenLike || derivedFlags.evergreenLike,
+    talentPool: storedFlags.talentPool || derivedFlags.talentPool,
+    multipleOpenings: storedFlags.multipleOpenings || derivedFlags.multipleOpenings,
+  },
   dataMode: row.data_mode,
-});
+  };
+};
 
 export function listLatestObservations(db: Database, sourceId?: string): Array<JobObservation & { dataMode: "live" | "fixture" }> {
   const rows = sourceId

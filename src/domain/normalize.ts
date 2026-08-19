@@ -3,6 +3,7 @@ import type {
   JobObservation,
   JobProvenance,
   NormalizationContext,
+  PostingFlags,
   RawJobRow,
   ProvenanceValue,
 } from "./observations";
@@ -41,6 +42,14 @@ const provenanceFor = (value: unknown): ProvenanceValue => {
   return raw ? { raw, kind: "exact" } : { kind: "unknown" };
 };
 
+export function classifyPostingFlags(title: string | null, description: string | null): PostingFlags {
+  const signalText = `${title ?? ""} ${description ?? ""}`;
+  const talentPool = /\b(?:talent\s+pool|future\s+opportunit(?:y|ies)|didn['’]?t\s+see\s+a\s+job)\b/i.test(signalText);
+  const explicitEvergreen = /\b(?:evergreen|continuous\s+hiring|rolling\s+basis|always\s+looking)\b/i.test(signalText);
+  const multipleOpenings = /\b(?:multiple\s+(?:openings|positions)|hiring\s+multiple)\b/i.test(signalText);
+  return { explicitEvergreen, evergreenLike: talentPool || explicitEvergreen || multipleOpenings, talentPool, multipleOpenings };
+}
+
 export function normalizeJobObservation(input: RawJobRow, context: NormalizationContext): JobObservation {
   const postedRaw = input.posted_date ?? input.posted_date_text;
   const closingRaw = input.closing_date ?? input.closing_date_text;
@@ -54,6 +63,7 @@ export function normalizeJobObservation(input: RawJobRow, context: Normalization
   const salary = text(input.salary);
   const applicationUrl = url(input.application_url);
   const listingUrl = url(input.url ?? input.job_detail_url ?? input.product_page_url);
+  const flags = classifyPostingFlags(title, description);
   const provenance: JobProvenance = {
     sourceJobId: provenanceFor(input.source_job_id ?? input.job_id),
     title: provenanceFor(input.title),
@@ -88,6 +98,7 @@ export function normalizeJobObservation(input: RawJobRow, context: Normalization
     salary,
     applicationUrl,
     url: listingUrl,
+    flags,
     provenance,
     sourceConfidence: Number((available / Object.keys(provenance).length).toFixed(2)),
   };

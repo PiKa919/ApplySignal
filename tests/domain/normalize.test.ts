@@ -39,4 +39,14 @@ describe("normalizeJobObservation", () => {
     expect(result.postedDateQuality).toBe("exact");
     expect(result.url).toBe("https://example.test/jobs/live-1");
   });
+
+  test("labels a talent-pool listing without calling it an ordinary evergreen role", () => {
+    const result = normalizeJobObservation({
+      title: "Didn't see a job? Apply here!",
+      description: "Join our talent pool for future opportunities.",
+      url: "https://example.test/jobs/talent-pool",
+    }, { sourceId: "zfh", sourceUrl: "https://example.test/jobs", observedAt: "2026-08-20T00:00:00.000Z" });
+
+    expect(result.flags).toEqual({ explicitEvergreen: false, evergreenLike: true, talentPool: true, multipleOpenings: false });
+  });
 });

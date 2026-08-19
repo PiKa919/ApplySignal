@@ -38,6 +38,7 @@ CREATE TABLE IF NOT EXISTS job_observations (
   url TEXT,
   provenance_json TEXT NOT NULL,
   source_confidence REAL,
+  flags_json TEXT NOT NULL DEFAULT '{}',
   data_mode TEXT NOT NULL DEFAULT 'live',
   UNIQUE(source_id, observation_id)
 );
@@ -80,6 +81,7 @@ export function createDatabase(path: string): Database {
   for (const statement of [
     "ALTER TABLE scrape_runs ADD COLUMN health_status TEXT NOT NULL DEFAULT 'healthy'",
     "ALTER TABLE scrape_runs ADD COLUMN health_report TEXT NOT NULL DEFAULT '{}'",
+    "ALTER TABLE job_observations ADD COLUMN flags_json TEXT NOT NULL DEFAULT '{}'",
   ]) {
     try { db.exec(statement); } catch (error) {
       if (!String(error).includes("duplicate column name")) throw error;

@@ -48,6 +48,14 @@ export interface JobObservation {
   salary: string | null;
   applicationUrl: string | null;
   url: string | null;
+  flags: PostingFlags;
   provenance: JobProvenance;
   sourceConfidence: number;
+}
+
+export interface PostingFlags {
+  explicitEvergreen: boolean;
+  evergreenLike: boolean;
+  talentPool: boolean;
+  multipleOpenings: boolean;
 }

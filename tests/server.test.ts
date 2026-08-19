@@ -43,6 +43,11 @@ test("job detail UI includes the resume re-entry tax", async () => {
   expect(await response.text()).toContain("RESUME RE-ENTRY TAX");
 });
 
+test("job detail UI includes evergreen and talent-pool flags", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  expect(await response.text()).toContain("TALENT POOL");
+});
+
 test("job detail UI includes evidence links and raw observed fields", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   const body = await response.text();
