@@ -31,6 +31,14 @@ test("flattens and deduplicates nested job envelopes before normalization", () =
   expect(rows.map((row) => row.source_job_id ?? row.job_id)).toEqual(["A", "B"]);
 });
 
+test("keeps same-id lifecycle versions when their public URLs differ", () => {
+  const rows = expandCollectorRows([
+    { source_job_id: "REQ-1", title: "Backend", url: "https://example.test/REQ-1?version=1" },
+    { source_job_id: "REQ-1", title: "Backend", url: "https://example.test/REQ-1?version=2" },
+  ]);
+  expect(rows).toHaveLength(2);
+});
+
 test("quarantines structurally invalid output before saving observations", () => {
   const db = createDatabase(":memory:");
   expect(() => ingestCollectorResult(db, {

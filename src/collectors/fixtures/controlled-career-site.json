@@ -1,0 +1,91 @@
+{
+  "name": "ApplySignal controlled career site",
+  "application_fields": {
+    "fixture-rich-006": [
+      { "field_label": "Resume", "normalized_category": "resume", "is_required": true },
+      { "field_label": "Full name", "normalized_category": "identity", "is_required": true },
+      { "field_label": "Current location", "normalized_category": "location", "is_required": true },
+      { "field_label": "Current CTC", "normalized_category": "compensation_history", "is_required": true },
+      { "field_label": "Expected CTC", "normalized_category": "compensation_history", "is_required": true },
+      { "field_label": "Notice period", "normalized_category": "availability", "is_required": true },
+      { "field_label": "Employment history", "normalized_category": "employment_history", "is_required": true },
+      { "field_label": "Education history", "normalized_category": "education", "is_required": false }
+    ]
+  },
+  "layouts": {
+    "layout-a": {
+      "label": "card layout",
+      "jobs": [
+        {
+          "source_job_id": "fixture-fresh-001",
+          "title": "Product Designer",
+          "location": "Pune",
+          "employment_type": "Full Time",
+          "posted_date": "2026-08-19",
+          "description": "Design product experiences with a cross-functional product team.",
+          "url": "https://fixture.applysignal.test/jobs/fixture-fresh-001",
+          "application_url": "https://fixture.applysignal.test/jobs/fixture-fresh-001/apply"
+        },
+        {
+          "source_job_id": "fixture-relative-002",
+          "title": "Backend Engineer",
+          "location": "Bengaluru",
+          "employment_type": "Full Time",
+          "posted_date": "30+ Days Ago",
+          "description": "Build APIs and production services with a backend engineering team.",
+          "url": "https://fixture.applysignal.test/jobs/fixture-relative-002",
+          "application_url": "https://fixture.applysignal.test/jobs/fixture-relative-002/apply"
+        },
+        {
+          "source_job_id": "fixture-evergreen-003",
+          "title": "Software Engineer",
+          "location": "Remote",
+          "employment_type": "Full Time",
+          "description": "We hire continuously on a rolling basis for software engineering opportunities.",
+          "url": "https://fixture.applysignal.test/jobs/fixture-evergreen-003",
+          "application_url": "https://fixture.applysignal.test/jobs/fixture-evergreen-003/apply"
+        },
+        {
+          "source_job_id": "fixture-talent-004",
+          "title": "Didn't see a job? Apply here!",
+          "location": "India",
+          "employment_type": "Full Time",
+          "description": "Join our talent pool for future opportunities if you did not see a job that fits.",
+          "url": "https://fixture.applysignal.test/jobs/fixture-talent-004",
+          "application_url": "https://fixture.applysignal.test/jobs/fixture-talent-004/apply"
+        },
+        {
+          "source_job_id": "fixture-multi-005",
+          "title": "Staff Data Engineer",
+          "location": "Bengaluru · Pune · Remote",
+          "employment_type": "Full Time",
+          "posted_date": "2026-08-17",
+          "description": "Build data platforms for teams working across multiple locations.",
+          "url": "https://fixture.applysignal.test/jobs/fixture-multi-005",
+          "application_url": "https://fixture.applysignal.test/jobs/fixture-multi-005/apply"
+        },
+        {
+          "source_job_id": "fixture-rich-006",
+          "title": "Senior Platform Engineer",
+          "location": "Hyderabad",
+          "employment_type": "Full Time",
+          "posted_date": "2026-08-16",
+          "description": "Own platform reliability, Kubernetes operations, and service architecture. The public application asks for a resume and structured work history.",
+          "url": "https://fixture.applysignal.test/jobs/fixture-rich-006",
+          "application_url": "https://fixture.applysignal.test/jobs/fixture-rich-006/apply"
+        }
+      ]
+    },
+    "layout-b": {
+      "label": "semantic definition-list layout",
+      "openings": [
+        { "reference": "fixture-fresh-001", "role": "Product Designer", "place": ["Pune"], "type": "Full Time", "source_date": "2026-08-19", "summary": "Design product experiences with a cross-functional product team.", "detail": "https://fixture.applysignal.test/jobs/fixture-fresh-001", "apply": "https://fixture.applysignal.test/jobs/fixture-fresh-001/apply" },
+        { "reference": "fixture-relative-002", "role": "Backend Engineer", "place": ["Bengaluru"], "type": "Full Time", "source_date": "30+ Days Ago", "summary": "Build APIs and production services with a backend engineering team.", "detail": "https://fixture.applysignal.test/jobs/fixture-relative-002", "apply": "https://fixture.applysignal.test/jobs/fixture-relative-002/apply" },
+        { "reference": "fixture-evergreen-003", "role": "Software Engineer", "place": ["Remote"], "type": "Full Time", "summary": "We hire continuously on a rolling basis for software engineering opportunities.", "detail": "https://fixture.applysignal.test/jobs/fixture-evergreen-003", "apply": "https://fixture.applysignal.test/jobs/fixture-evergreen-003/apply" },
+        { "reference": "fixture-talent-004", "role": "Didn't see a job? Apply here!", "place": ["India"], "type": "Full Time", "summary": "Join our talent pool for future opportunities if you did not see a job that fits.", "detail": "https://fixture.applysignal.test/jobs/fixture-talent-004", "apply": "https://fixture.applysignal.test/jobs/fixture-talent-004/apply" },
+        { "reference": "fixture-multi-005", "role": "Staff Data Engineer", "place": ["Bengaluru", "Pune", "Remote"], "type": "Full Time", "source_date": "2026-08-17", "summary": "Build data platforms for teams working across multiple locations.", "detail": "https://fixture.applysignal.test/jobs/fixture-multi-005", "apply": "https://fixture.applysignal.test/jobs/fixture-multi-005/apply" },
+        { "reference": "fixture-rich-006", "role": "Senior Platform Engineer", "place": ["Hyderabad"], "type": "Full Time", "source_date": "2026-08-16", "summary": "Own platform reliability, Kubernetes operations, and service architecture. The public application asks for a resume and structured work history.", "detail": "https://fixture.applysignal.test/jobs/fixture-rich-006", "apply": "https://fixture.applysignal.test/jobs/fixture-rich-006/apply" }
+      ]
+    }
+  }
+}

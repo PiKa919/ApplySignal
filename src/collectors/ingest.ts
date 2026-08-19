@@ -21,7 +21,9 @@ export function expandCollectorRows(rows: Record<string, unknown>[]): RawJobRow[
   const candidates = nested.length > 0 ? nested : rows as RawJobRow[];
   const seen = new Set<string>();
   return candidates.filter((row) => {
-    const key = String(row.source_job_id ?? row.job_id ?? row.url ?? row.job_detail_url ?? JSON.stringify(row));
+    const identity = [row.url, row.job_detail_url, row.product_page_url, row.source_job_id, row.job_id]
+      .find((value) => typeof value === "string" && value.trim().length > 0);
+    const key = String(identity ?? JSON.stringify(row));
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

@@ -28,7 +28,13 @@ bun run dev
 
 Open <http://localhost:3000>.
 
-The fixture command writes `data/applysignal.db`, which is ignored by Git. It seeds the public-source snapshot plus a separate, clearly labeled `demo-lifecycle` source with two observations so the dashboard can demonstrate factual diffs and a possible-repost inference. Fixture observations are visibly labeled in the dashboard.
+The fixture command writes `data/applysignal.db`, which is ignored by Git. It seeds the public-source snapshot plus separate, clearly labeled `demo-lifecycle` and `demo-controlled` sources. The controlled source contains six edge cases: a fresh role, a relative-date role, explicit evergreen hiring, a talent-pool posting, a multi-location role, and a rich public application form. It supports two semantically equivalent layouts to exercise extraction resilience:
+
+```bash
+APPLYSIGNAL_FIXTURE_LAYOUT=layout-b bun run seed:fixture
+```
+
+`layout-a` is the default card-shaped representation; `layout-b` is a definition-list-like representation that is canonicalized into the same six job facts. The rich application fields are public labels only, never candidate values. Fixture observations are visibly labeled in the dashboard. Details are documented in `docs/evidence/controlled-fixture.md`.
 
 ## Bright Data workflow
 
@@ -74,6 +80,7 @@ Live and fixture data are separate. Missing salary, deadlines, or application fi
 
 - `src/domain/`: observation normalization, Reciprocity Gap analysis, lifecycle diffs, and bounded inferences
 - `src/collectors/`: Bright Data adapter, cardinality guard, fixture ingestion, and application-field ingestion
+- `src/collectors/fixtures/controlled-career-site.json`: deterministic six-case, two-layout fault-injection fixture
 - `src/storage/`: SQLite schema and repositories
 - `src/server.ts`: JSON API and static dashboard server
 - `src/ui/`: evidence-focused dashboard
