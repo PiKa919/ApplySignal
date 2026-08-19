@@ -1,5 +1,5 @@
 import { analyzeReciprocity } from "./domain/reciprocity";
-import { diffObservations } from "./domain/lifecycle";
+import { diffObservations, inferPostingRelationship } from "./domain/lifecycle";
 import { SOURCE_CATALOG } from "./domain/source-catalog";
 import { listApplicationFields, listLatestObservations, listScrapeRuns } from "./storage/repository";
 import type { Database } from "bun:sqlite";
@@ -30,7 +30,8 @@ export function createAppServer(db: Database) {
         const job = observations().find((candidate) => candidate.observationId === detailMatch[1]);
         if (!job) return json({ error: "job observation not found" }, 404);
         const history = observations().filter((candidate) => candidate.sourceId === job.sourceId && candidate.observationId !== job.observationId).slice(0, 5);
-        return json({ ...job, fields: listApplicationFields(db, job.observationId), analysis: analysisFor(job), diffs: history.map((candidate) => diffObservations(candidate, job)) });
+        const inferences = history.map((candidate) => inferPostingRelationship(candidate, job)).filter((inference) => inference !== null);
+        return json({ ...job, fields: listApplicationFields(db, job.observationId), analysis: analysisFor(job), diffs: history.map((candidate) => diffObservations(candidate, job)), inferences });
       }
       if (url.pathname === "/" || url.pathname === "/index.html") return new Response(await Bun.file(`${import.meta.dir}/ui/index.html`).text(), { headers: { "content-type": "text/html; charset=utf-8" } });
       if (url.pathname === "/styles.css") return new Response(await Bun.file(`${import.meta.dir}/ui/styles.css`).text(), { headers: { "content-type": "text/css; charset=utf-8" } });

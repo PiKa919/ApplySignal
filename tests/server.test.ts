@@ -2,6 +2,7 @@ import { expect, test } from "bun:test";
 import { createDatabase } from "../src/storage/database";
 import { createAppServer } from "../src/server";
 import { saveScrapeRun } from "../src/storage/repository";
+import { saveObservation } from "../src/storage/repository";
 
 test("summary endpoint exposes source confidence separately from job analysis", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/api/summary"));
@@ -23,4 +24,13 @@ test("summary endpoint exposes source catalog states without treating them as ob
     expect.objectContaining({ sourceId: "zfh", status: "live" }),
     expect.objectContaining({ sourceId: "visa", status: "failed_generation" }),
   ]));
+});
+
+test("job detail keeps a possible repost as an inference separate from field diffs", async () => {
+  const db = createDatabase(":memory:");
+  const base = { sourceId: "zfh", sourceUrl: "https://example.test/jobs", title: "Backend Engineer", location: "Bengaluru", description: "Build APIs with TypeScript", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any;
+  saveObservation(db, { ...base, observationId: "obs-old", observedAt: "2026-08-19T00:00:00.000Z" });
+  saveObservation(db, { ...base, observationId: "obs-new", observedAt: "2026-08-20T00:00:00.000Z" });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/jobs/obs-new"));
+  expect(await response.json()).toMatchObject({ inferences: [expect.objectContaining({ type: "possible_repost", observationIds: ["obs-old", "obs-new"] })] });
 });
