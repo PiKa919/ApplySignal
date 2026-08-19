@@ -55,6 +55,20 @@ CREATE TABLE IF NOT EXISTS posting_inferences (
   signals_json TEXT NOT NULL,
   observation_ids_json TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS validation_results (
+  validation_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  source_id TEXT NOT NULL,
+  oracle_id TEXT NOT NULL,
+  checked_at TEXT NOT NULL,
+  scraper_count INTEGER NOT NULL,
+  oracle_count INTEGER NOT NULL,
+  matched_count INTEGER NOT NULL,
+  missing_from_scraper_json TEXT NOT NULL,
+  unexpected_in_scraper_json TEXT NOT NULL,
+  agreement_rate REAL,
+  status TEXT NOT NULL
+);
 `;
 
 export function createDatabase(path: string): Database {

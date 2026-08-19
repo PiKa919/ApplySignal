@@ -1,7 +1,7 @@
 import { analyzeReciprocity } from "./domain/reciprocity";
 import { diffObservations, inferPostingRelationship } from "./domain/lifecycle";
 import { SOURCE_CATALOG } from "./domain/source-catalog";
-import { listApplicationFields, listLatestObservations, listScrapeRuns } from "./storage/repository";
+import { listApplicationFields, listLatestObservations, listScrapeRuns, listValidationResults } from "./storage/repository";
 import type { Database } from "bun:sqlite";
 
 const json = (value: unknown, status = 200): Response => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -18,6 +18,7 @@ export function createAppServer(db: Database) {
         return json({
           sourceCatalog: SOURCE_CATALOG,
           runs: listScrapeRuns(db),
+          validationResults: listValidationResults(db),
           sourceConfidence: jobs.map((job) => ({ observationId: job.observationId, sourceId: job.sourceId, confidence: job.sourceConfidence, dataMode: job.dataMode })),
           analyses: jobs.map((job) => ({ observationId: job.observationId, ...analysisFor(job) })),
         });

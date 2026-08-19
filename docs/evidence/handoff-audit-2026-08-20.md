@@ -34,6 +34,7 @@ This is a local, read-only audit of the repository state. It does not trigger Br
 - Missing salary, deadlines, and application fields remain unknown rather than negative claims.
 - Application collectors inspect public field labels only; they do not submit forms or collect candidate values.
 - AI use is disclosed in the dashboard and README.
+- Independent oracle validation is implemented as a deterministic, persisted comparison layer; no oracle result is claimed until cached scraper and oracle IDs are supplied.
 - Credit-aware policy: no automatic reruns, no confirmation reruns, and no new paid collection without a clear incremental evidence goal.
 
 ## Verification commands
@@ -43,7 +44,7 @@ bun test
 bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
 ```
 
-Latest local verification: 23 tests passed and the Bun build completed successfully.
+Latest local verification: 28 tests passed and the Bun build completed successfully.
 
 ## Remaining plan gap
 

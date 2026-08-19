@@ -24,19 +24,22 @@ async function load() {
   const [summary, jobResponse] = await Promise.all([fetch("/api/summary").then((r) => r.json()), fetch("/api/jobs").then((r) => r.json())]);
   const jobsData = jobResponse as Job[];
   const runs = (summary.runs ?? []) as Array<{ sourceId: string; status: string; rowCount: number; observedAt: string }>;
+  const validationResults = (summary.validationResults ?? []) as Array<{ sourceId: string; oracleId: string; status: string; agreementRate: number | null; matchedCount: number; oracleCount: number }>;
   const catalog = (summary.sourceCatalog ?? []) as Array<{ sourceId: string; name: string; status: string; note: string }>;
   const activeSources = catalog.filter((source) => source.status === "live" || source.status === "live_scoped");
   const boardSources = catalog.filter((source) => source.status === "live");
   const scopedSources = catalog.filter((source) => source.status === "live_scoped");
   const cards = catalog.map((source) => `<div class="health-card ${esc(source.status)}"><div class="health-source">${esc(source.name)}</div><div class="health-meta">${esc(source.status)} · ${esc(source.note)}</div></div>`);
   const runCards = runs.map((run) => `<div class="health-card ${esc(run.status)}"><div class="health-source">Run: ${esc(run.sourceId)}</div><div class="health-meta">${esc(run.status)} · ${esc(run.rowCount)} rows · ${esc(new Date(run.observedAt).toLocaleString())}</div></div>`);
-  health.innerHTML = [...cards, ...runCards].join("") || `<div class="muted">No collector runs recorded yet.</div>`;
+  const validationCards = validationResults.map((result) => `<div class="health-card ${esc(result.status)}"><div class="health-source">Oracle: ${esc(result.sourceId)}</div><div class="health-meta">${esc(result.status)} · ${result.agreementRate === null ? "insufficient data" : `${Math.round(result.agreementRate * 100)}% ID agreement`} · ${esc(result.oracleId)}</div></div>`);
+  health.innerHTML = [...cards, ...runCards, ...validationCards].join("") || `<div class="muted">No collector runs recorded yet.</div>`;
   metrics.innerHTML = [
     ["OBSERVATIONS", jobsData.length],
     ["KNOWN SOURCE CONFIDENCE", `${Math.round((jobsData.reduce((sum, job) => sum + (job.sourceConfidence ?? 0), 0) / Math.max(jobsData.length, 1)) * 100)}%`],
     ["INFORMATION ASYMMETRY", jobsData.filter((job) => job.analysis.gapLabel === "information asymmetry").length],
     ["DATA MODE", jobsData.some((job) => job.dataMode === "live") ? "LIVE + FIXTURE" : "FIXTURE"],
     ["ACTIVE SOURCES", `${activeSources.length} (${boardSources.length} board · ${scopedSources.length} scoped)`],
+    ["ORACLE VALIDATION", validationResults.length ? `${validationResults.filter((result) => result.status === "agree").length}/${validationResults.length} agree` : "NOT RUN"],
   ].map(([label, value]) => `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value">${esc(value)}</div></div>`).join("");
   count.textContent = `${jobsData.length} recorded observations`;
   jobs.innerHTML = jobsData.length ? jobsData.map((job) => `<article class="job-card" data-id="${esc(job.observationId)}"><div class="job-top"><div><div class="job-title">${esc(job.title)}</div><div class="job-meta">${esc(job.location)} · ${esc(job.dataMode)} · source confidence ${Math.round((job.sourceConfidence ?? 0) * 100)}%</div></div><div class="job-gap">${esc(job.analysis.gapLabel)}</div></div></article>`).join("") : `<div class="detail empty"><p>No observations loaded yet. Ingest the checked-in fixture or run a live Bright Data collector.</p></div>`;

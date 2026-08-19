@@ -44,6 +44,10 @@ The first live collector was created in Scraper Studio for Zerodha Fund House. T
 
 The approved self-healing run added `closing_date_text`, returned `null` when no public deadline was visible, and preserved the existing listing fields. Evidence is documented in `docs/evidence/`.
 
+## Oracle validation
+
+When a source has an independent public ATS representation, compare cached scraper and oracle job IDs locally with `compareJobIds` from `src/domain/validation.ts`. The result records deduplicated counts, matched IDs, missing and unexpected IDs, and an explicit `agree`, `mismatch`, or `insufficient_data` status. Results are persisted separately from collector health and exposed through `/api/summary`; no additional Bright Data request is needed to repeat a comparison.
+
 ## AI use disclosure
 
 Bright Data Scraper Studio is used to generate and approve collector code, including the demonstrated self-healing repair. ApplySignal's normalization, Reciprocity Gap labels, lifecycle diffs, and bounded repost inferences are deterministic application code. The system does not use an LLM to invent employer facts, collect candidate values, or submit applications.

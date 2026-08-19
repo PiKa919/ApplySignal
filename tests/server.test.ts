@@ -3,6 +3,7 @@ import { createDatabase } from "../src/storage/database";
 import { createAppServer } from "../src/server";
 import { saveScrapeRun } from "../src/storage/repository";
 import { saveObservation } from "../src/storage/repository";
+import { saveValidationResult } from "../src/storage/repository";
 
 test("summary endpoint exposes source confidence separately from job analysis", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/api/summary"));
@@ -20,6 +21,11 @@ test("dashboard includes active source coverage metrics", async () => {
   expect(await response.text()).toContain("ACTIVE SOURCES");
 });
 
+test("dashboard includes independent oracle validation", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  expect(await response.text()).toContain("ORACLE VALIDATION");
+});
+
 test("job detail UI includes evidence links and raw observed fields", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   const body = await response.text();
@@ -32,6 +38,24 @@ test("summary endpoint exposes collector health separately from observations", a
   saveScrapeRun(db, { runId: "run-1", collectorId: "collector-1", sourceId: "visa", observedAt: "2026-08-20T00:00:00.000Z", status: "failed", rowCount: 0, expectedMinimumRows: 1, rawOutput: "" });
   const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
   expect(await response.json()).toMatchObject({ runs: [{ sourceId: "visa", status: "failed", rowCount: 0 }] });
+});
+
+test("summary endpoint exposes oracle validation separately from collector health", async () => {
+  const db = createDatabase(":memory:");
+  saveValidationResult(db, {
+    sourceId: "postman",
+    oracleId: "postman-greenhouse",
+    checkedAt: "2026-08-20T00:00:00.000Z",
+    scraperCount: 1,
+    oracleCount: 1,
+    matchedCount: 1,
+    missingFromScraper: [],
+    unexpectedInScraper: [],
+    agreementRate: 1,
+    status: "agree",
+  });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
+  expect(await response.json()).toMatchObject({ validationResults: [expect.objectContaining({ sourceId: "postman", status: "agree" })] });
 });
 
 test("summary endpoint exposes source catalog states without treating them as observations", async () => {

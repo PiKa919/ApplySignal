@@ -2,6 +2,7 @@ import type { Database } from "bun:sqlite";
 import type { JobObservation } from "../domain/observations";
 import type { ApplicationFieldObservation } from "../domain/reciprocity";
 import type { PostingInference } from "../domain/lifecycle";
+import type { JobIdComparison } from "../domain/validation";
 
 export interface ScrapeRunRecord {
   runId: string;
@@ -130,4 +131,52 @@ export function listApplicationFields(db: Database, observationId: string): Appl
 export function saveInference(db: Database, inference: PostingInference): void {
   db.query("INSERT INTO posting_inferences (type, confidence, signals_json, observation_ids_json) VALUES (?, ?, ?, ?)")
     .run(inference.type, inference.confidence, JSON.stringify(inference.signals), JSON.stringify(inference.observationIds));
+}
+
+export function saveValidationResult(db: Database, result: JobIdComparison): void {
+  db.query(`INSERT INTO validation_results
+    (source_id, oracle_id, checked_at, scraper_count, oracle_count, matched_count,
+     missing_from_scraper_json, unexpected_in_scraper_json, agreement_rate, status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(
+      result.sourceId,
+      result.oracleId,
+      result.checkedAt,
+      result.scraperCount,
+      result.oracleCount,
+      result.matchedCount,
+      JSON.stringify(result.missingFromScraper),
+      JSON.stringify(result.unexpectedInScraper),
+      result.agreementRate,
+      result.status,
+    );
+}
+
+export function listValidationResults(db: Database): JobIdComparison[] {
+  const rows = db.query(`SELECT source_id, oracle_id, checked_at, scraper_count, oracle_count,
+    matched_count, missing_from_scraper_json, unexpected_in_scraper_json, agreement_rate, status
+    FROM validation_results ORDER BY checked_at DESC`).all() as Array<{
+      source_id: string;
+      oracle_id: string;
+      checked_at: string;
+      scraper_count: number;
+      oracle_count: number;
+      matched_count: number;
+      missing_from_scraper_json: string;
+      unexpected_in_scraper_json: string;
+      agreement_rate: number | null;
+      status: JobIdComparison["status"];
+    }>;
+  return rows.map((row) => ({
+    sourceId: row.source_id,
+    oracleId: row.oracle_id,
+    checkedAt: row.checked_at,
+    scraperCount: row.scraper_count,
+    oracleCount: row.oracle_count,
+    matchedCount: row.matched_count,
+    missingFromScraper: JSON.parse(row.missing_from_scraper_json),
+    unexpectedInScraper: JSON.parse(row.unexpected_in_scraper_json),
+    agreementRate: row.agreement_rate,
+    status: row.status,
+  }));
 }
