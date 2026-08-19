@@ -24,7 +24,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Meesho | Pending | Candidate-specific Marketplace/library lookup still required |
 | CRED | Pending | Candidate-specific Marketplace/library lookup still required |
 | Postman | Validation candidate | Greenhouse oracle is useful; custom-source eligibility still requires lookup |
-| Razorpay | Pending | Candidate-specific Marketplace/library lookup still required |
+| Razorpay | Keep as live candidate | Direct Greenhouse board collector completed and returned 26 public listing rows |
 
 ## Collection-generation outcomes
 
@@ -40,6 +40,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Cadence Workday | `c_mt0il1zsoiz0umxxe` | Generation reached code generation at attempt 181 when bounded polling stopped | Unresolved; no live output claimed |
 | BrowserStack Workday | `c_mt0iq7oysxok3r6q4` | Generation reached preview picker at attempt 183 when bounded polling stopped | Unresolved; no live output claimed |
 | Palantir Lever fallback | `c_mt0ivvftqptif51k9` | Completed; realtime switched to batch after page limit and returned 307 successful rows | Live listing dataset ingested; batch handoff retained as run evidence |
+| Razorpay Greenhouse board (direct) | `c_mt0jo8sc1rqz4ef0pb` | Completed; returned 26 successful rows from the public linked board | Live listing dataset ingested; branded-page routing remains recorded as a separate partial attempt |
 
 ## Collector created
 
