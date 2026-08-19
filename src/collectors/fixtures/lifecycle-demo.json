@@ -1,0 +1,23 @@
+[
+  {
+    "source_job_id": "demo-backend-001",
+    "title": "Backend Engineer",
+    "location": "Bengaluru",
+    "employment_type": "Full Time",
+    "posted_date": "2026-08-01",
+    "description": "Build reliable backend systems and APIs for a growing product team. Work with modern technology stacks and production services.",
+    "url": "https://example.test/demo-lifecycle/backend-engineer?version=1",
+    "application_url": "https://example.test/demo-lifecycle/apply?version=1"
+  },
+  {
+    "source_job_id": "demo-backend-001",
+    "title": "Backend Engineer",
+    "location": "Bengaluru",
+    "employment_type": "Full Time",
+    "posted_date": "2026-08-20",
+    "closing_date": "2026-09-10",
+    "description": "Build reliable backend systems and APIs for a growing product team. Work with modern technology stacks and production services.",
+    "url": "https://example.test/demo-lifecycle/backend-engineer?version=2",
+    "application_url": "https://example.test/demo-lifecycle/apply?version=2"
+  }
+]

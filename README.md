@@ -24,7 +24,7 @@ bun run dev
 
 Open <http://localhost:3000>.
 
-The fixture command writes `data/applysignal.db`, which is ignored by Git. Fixture observations are visibly labeled in the dashboard.
+The fixture command writes `data/applysignal.db`, which is ignored by Git. It seeds the public-source snapshot plus a separate, clearly labeled `demo-lifecycle` source with two observations so the dashboard can demonstrate factual diffs and a possible-repost inference. Fixture observations are visibly labeled in the dashboard.
 
 ## Bright Data workflow
 
