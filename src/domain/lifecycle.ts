@@ -19,6 +19,29 @@ export interface PostingInference {
   observationIds: [string, string];
 }
 
+export const LIFECYCLE_STATES = [
+  "NEWLY_OBSERVED",
+  "ACTIVE_STABLE",
+  "MEANINGFULLY_UPDATED",
+  "REMOVED",
+  "REAPPEARED",
+  "EXPLICIT_EVERGREEN",
+  "TALENT_POOL",
+  "POSSIBLE_REPOST",
+  "APPLICATION_CLOSED",
+  "UNKNOWN",
+] as const;
+
+export type LifecycleState = (typeof LIFECYCLE_STATES)[number];
+
+export interface LifecycleClassificationInput {
+  current: JobObservation | null;
+  previous?: JobObservation | null;
+  currentWasPresent?: boolean;
+  previousWasPresent?: boolean;
+  applicationOpen?: boolean | null;
+}
+
 const fields = [
   "sourceJobId", "title", "location", "employmentType", "postedDate", "postedDateQuality",
   "closingDate", "closingDateQuality", "description", "salary", "applicationUrl", "url",
@@ -57,4 +80,25 @@ export function inferPostingRelationship(a: JobObservation, b: JobObservation): 
     signals: ["normalized title matches", "normalized location matches", `description similarity ${descriptionSimilarity.toFixed(2)}`],
     observationIds: [a.observationId, b.observationId],
   };
+}
+
+const samePosting = (a: JobObservation, b: JobObservation): boolean => {
+  if (a.sourceJobId && b.sourceJobId) return a.sourceJobId === b.sourceJobId;
+  if (a.url && b.url) return a.url === b.url;
+  return false;
+};
+
+export function classifyLifecycleState(input: LifecycleClassificationInput): LifecycleState {
+  const { current, previous } = input;
+  if (input.currentWasPresent === false) return previous ? "REMOVED" : "UNKNOWN";
+  if (!current) return "UNKNOWN";
+  if (input.applicationOpen === false) return "APPLICATION_CLOSED";
+  if (current.flags?.talentPool) return "TALENT_POOL";
+  if (current.flags?.explicitEvergreen) return "EXPLICIT_EVERGREEN";
+  if (input.previousWasPresent === false && previous) return "REAPPEARED";
+  if (!previous) return "NEWLY_OBSERVED";
+  if (samePosting(previous, current)) {
+    return diffObservations(previous, current).changes.length > 0 ? "MEANINGFULLY_UPDATED" : "ACTIVE_STABLE";
+  }
+  return inferPostingRelationship(previous, current) ? "POSSIBLE_REPOST" : "NEWLY_OBSERVED";
 }

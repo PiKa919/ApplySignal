@@ -38,6 +38,20 @@ test("dashboard includes independent oracle validation", async () => {
   expect(body).toContain("IDs matched");
 });
 
+test("dashboard keeps lifecycle state visible as an independent signal", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(body).toContain("lifecycleState");
+  expect(body).toContain("LIFECYCLE");
+});
+
+test("dashboard keeps freshness evidence visible as an independent signal", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(body).toContain("freshness");
+  expect(body).toContain("FRESHNESS");
+});
+
 test("job detail UI includes the resume re-entry tax", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   expect(await response.text()).toContain("RESUME RE-ENTRY TAX");
@@ -103,4 +117,22 @@ test("job detail keeps a possible repost as an inference separate from field dif
   saveObservation(db, { ...base, observationId: "obs-new", observedAt: "2026-08-20T00:00:00.000Z" });
   const response = await createAppServer(db).fetch(new Request("http://local/api/jobs/obs-new"));
   expect(await response.json()).toMatchObject({ inferences: [expect.objectContaining({ type: "possible_repost", observationIds: ["obs-old", "obs-new"] })] });
+});
+
+test("summary exposes lifecycle state separately from reciprocity analysis", async () => {
+  const db = createDatabase(":memory:");
+  const base = { sourceId: "zfh", sourceUrl: "https://example.test/jobs", sourceJobId: "REQ-1", title: "Backend Engineer", location: "Bengaluru", description: "Build APIs", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any;
+  saveObservation(db, { ...base, observationId: "obs-old", observedAt: "2026-08-19T00:00:00.000Z" });
+  saveObservation(db, { ...base, observationId: "obs-new", closingDate: "2026-09-01", observedAt: "2026-08-20T00:00:00.000Z" });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
+  const body = await response.json();
+  expect(body.analyses.find((analysis: { observationId: string }) => analysis.observationId === "obs-new")).toMatchObject({ lifecycleState: "MEANINGFULLY_UPDATED" });
+});
+
+test("summary exposes freshness evidence without inventing a publish date", async () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-relative", sourceId: "visa", sourceUrl: "https://example.test/jobs", title: "Backend", postedDate: null, postedDateQuality: "relative", observedAt: "2026-08-20T00:00:00.000Z", provenance: { postedDate: { raw: "30+ Days Ago", kind: "relative" } }, sourceConfidence: 1 } as any);
+  const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
+  const analysis = (await response.json()).analyses[0];
+  expect(analysis.freshness).toMatchObject({ precision: "lower_bound", sourcePublishedAt: null, ageMinDays: 30 });
 });

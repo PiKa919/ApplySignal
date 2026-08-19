@@ -1,5 +1,6 @@
 import { analyzeReciprocity } from "./domain/reciprocity";
-import { diffObservations, inferPostingRelationship } from "./domain/lifecycle";
+import { classifyLifecycleState, diffObservations, inferPostingRelationship } from "./domain/lifecycle";
+import { analyzeFreshness } from "./domain/freshness";
 import { SOURCE_CATALOG } from "./domain/source-catalog";
 import { listApplicationFields, listLatestObservations, listScrapeRuns, listValidationResults } from "./storage/repository";
 import type { Database } from "bun:sqlite";
@@ -8,7 +9,17 @@ const json = (value: unknown, status = 200): Response => new Response(JSON.strin
 
 export function createAppServer(db: Database) {
   const observations = () => listLatestObservations(db);
-  const analysisFor = (observation: ReturnType<typeof observations>[number]) => analyzeReciprocity(observation, listApplicationFields(db, observation.observationId));
+  const historyFor = (observation: ReturnType<typeof observations>[number]) => observations()
+    .filter((candidate) => candidate.sourceId === observation.sourceId && candidate.observationId !== observation.observationId)
+    .filter((candidate) => candidate.observedAt < observation.observedAt);
+  const analysisFor = (observation: ReturnType<typeof observations>[number]) => {
+    const previous = historyFor(observation)[0] ?? null;
+    return {
+      ...analyzeReciprocity(observation, listApplicationFields(db, observation.observationId)),
+      lifecycleState: classifyLifecycleState({ current: observation, previous }),
+      freshness: analyzeFreshness(observation),
+    };
+  };
 
   return {
     async fetch(request: Request): Promise<Response> {
