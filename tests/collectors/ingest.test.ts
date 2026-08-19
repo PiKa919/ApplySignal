@@ -30,3 +30,26 @@ test("flattens and deduplicates nested job envelopes before normalization", () =
   expect(rows).toHaveLength(2);
   expect(rows.map((row) => row.source_job_id ?? row.job_id)).toEqual(["A", "B"]);
 });
+
+test("quarantines structurally invalid output before saving observations", () => {
+  const db = createDatabase(":memory:");
+  expect(() => ingestCollectorResult(db, {
+    runId: "run-health",
+    collectorId: "c_test",
+    sourceId: "visa",
+    observedAt: "2026-08-20T00:00:00.000Z",
+    status: "success",
+    rawOutput: "raw",
+    rows: [
+      { source_job_id: "A", title: "Backend", location: "Bengaluru", url: "https://example.test/A" },
+      { source_job_id: "B", title: "Designer", location: null, url: "https://example.test/B" },
+    ],
+    expectedMinimumRows: 2,
+    requiredFields: ["source_job_id", "title", "location"],
+    identityField: "source_job_id",
+    expectedHost: "example.test",
+    minimumCoverage: 0.75,
+  } as any)).toThrow("quarantined");
+  expect(listScrapeRuns(db)).toMatchObject([{ runId: "run-health", status: "quarantined", healthStatus: "quarantined" }]);
+  expect(db.query("SELECT COUNT(*) as count FROM job_observations").get()).toEqual({ count: 0 });
+});

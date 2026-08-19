@@ -58,6 +58,8 @@ Collector creation and live runs are paid external actions. The project keeps on
 
 The collector CLI also skips a successful run for the same collector/source within the default 24-hour cooldown before invoking Bright Data. Set `BRIGHTDATA_COOLDOWN_HOURS=0` for a deliberate no-cooldown run, or set `APPLYSIGNAL_FORCE_PAID_RUN=true` when an explicit rerun is justified.
 
+Ingestion applies a structural health gate after envelope expansion: minimum cardinality, required-field coverage, duplicate identity detection, and expected URL-host checks. A suspicious result is persisted as `quarantined` with its health report and produces no job observations.
+
 ## Evidence boundary
 
 Live and fixture data are separate. Missing salary, deadlines, or application fields remain unknown; they are not converted to negative claims. The app does not submit applications or access login-protected data.

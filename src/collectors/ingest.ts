@@ -6,6 +6,7 @@ import { RECIPROCITY_CATEGORIES, type ApplicationFieldObservation, type Reciproc
 import type { Database } from "bun:sqlite";
 import type { CollectorRunResult } from "./brightdata";
 import type { RawJobRow } from "../domain/observations";
+import { assessCollectorRows, type CollectorHealthReport } from "./health";
 
 export interface IngestSummary {
   runId: string;
@@ -29,14 +30,19 @@ export function expandCollectorRows(rows: Record<string, unknown>[]): RawJobRow[
 
 export function ingestCollectorResult(db: Database, result: CollectorRunResult, dataMode: "live" | "fixture" = "live"): IngestSummary {
   const rows = expandCollectorRows(result.rows);
-  const run = (status: string) => saveScrapeRun(db, { runId: result.runId, collectorId: result.collectorId, sourceId: result.sourceId, observedAt: result.observedAt, status, rowCount: rows.length, expectedMinimumRows: result.expectedMinimumRows, rawOutput: result.rawOutput });
+  const health = assessCollectorRows(rows, { minimumRows: result.expectedMinimumRows, requiredFields: result.requiredFields, identityField: result.identityField, expectedHost: result.expectedHost, minimumCoverage: result.minimumCoverage });
+  const run = (status: string, report: CollectorHealthReport = health) => saveScrapeRun(db, { runId: result.runId, collectorId: result.collectorId, sourceId: result.sourceId, observedAt: result.observedAt, status, rowCount: rows.length, expectedMinimumRows: result.expectedMinimumRows, healthStatus: report.status, healthReport: report, rawOutput: result.rawOutput });
   if (result.status !== "success") {
-    run("failed");
+    run("failed", { ...health, status: "quarantined", errors: [...health.errors, result.stderr || "collector failed"] });
     throw new Error(`collector failed: ${result.stderr || "unknown Bright Data error"}`);
   }
   if (rows.length < result.expectedMinimumRows) {
     run("cardinality_failed");
     throw new Error(`cardinality check failed: expected at least ${result.expectedMinimumRows}, received ${rows.length}`);
+  }
+  if (health.status === "quarantined") {
+    run("quarantined");
+    throw new Error(`collector quarantined: ${health.errors.join("; ")}`);
   }
   run(result.status);
   const observationIds = rows.map((row) => {

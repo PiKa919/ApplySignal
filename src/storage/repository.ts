@@ -12,6 +12,8 @@ export interface ScrapeRunRecord {
   status: string;
   rowCount: number;
   expectedMinimumRows: number | null;
+  healthStatus?: "healthy" | "quarantined";
+  healthReport?: Record<string, unknown>;
   rawOutput: string;
 }
 
@@ -23,19 +25,23 @@ export interface ScrapeRunHealth {
   status: string;
   rowCount: number;
   expectedMinimumRows: number | null;
+  healthStatus: "healthy" | "quarantined";
+  healthReport: Record<string, unknown>;
 }
 
 export function saveScrapeRun(db: Database, run: ScrapeRunRecord): void {
   const statement = db.query(`INSERT OR REPLACE INTO scrape_runs
-    (run_id, collector_id, source_id, observed_at, status, row_count, expected_minimum_rows, raw_output)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
-  statement.run(run.runId, run.collectorId, run.sourceId, run.observedAt, run.status, run.rowCount, run.expectedMinimumRows, run.rawOutput);
+    (run_id, collector_id, source_id, observed_at, status, row_count, expected_minimum_rows, health_status, health_report, raw_output)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+  statement.run(run.runId, run.collectorId, run.sourceId, run.observedAt, run.status, run.rowCount, run.expectedMinimumRows, run.healthStatus ?? "healthy", JSON.stringify(run.healthReport ?? {}), run.rawOutput);
 }
 
 export function listScrapeRuns(db: Database): ScrapeRunHealth[] {
-  return db.query(`SELECT run_id as runId, collector_id as collectorId, source_id as sourceId,
-    observed_at as observedAt, status, row_count as rowCount, expected_minimum_rows as expectedMinimumRows
-    FROM scrape_runs ORDER BY observed_at DESC`).all() as ScrapeRunHealth[];
+  const rows = db.query(`SELECT run_id as runId, collector_id as collectorId, source_id as sourceId,
+    observed_at as observedAt, status, row_count as rowCount, expected_minimum_rows as expectedMinimumRows,
+    health_status as healthStatus, health_report as healthReport
+    FROM scrape_runs ORDER BY observed_at DESC`).all() as Array<ScrapeRunHealth & { healthReport: string | Record<string, unknown> }>;
+  return rows.map((row) => ({ ...row, healthReport: typeof row.healthReport === "string" ? JSON.parse(row.healthReport) : row.healthReport }));
 }
 
 export function saveObservation(db: Database, observation: JobObservation & { dataMode?: "live" | "fixture" }): void {

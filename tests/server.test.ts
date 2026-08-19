@@ -21,6 +21,11 @@ test("dashboard includes active source coverage metrics", async () => {
   expect(await response.text()).toContain("ACTIVE SOURCES");
 });
 
+test("dashboard renders structural health state for collector runs", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  expect(await response.text()).toContain("healthStatus");
+});
+
 test("dashboard includes independent oracle validation", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   const body = await response.text();
@@ -40,6 +45,13 @@ test("summary endpoint exposes collector health separately from observations", a
   saveScrapeRun(db, { runId: "run-1", collectorId: "collector-1", sourceId: "visa", observedAt: "2026-08-20T00:00:00.000Z", status: "failed", rowCount: 0, expectedMinimumRows: 1, rawOutput: "" });
   const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
   expect(await response.json()).toMatchObject({ runs: [{ sourceId: "visa", status: "failed", rowCount: 0 }] });
+});
+
+test("summary endpoint exposes structural quarantine evidence", async () => {
+  const db = createDatabase(":memory:");
+  saveScrapeRun(db, { runId: "run-quarantined", collectorId: "collector-1", sourceId: "visa", observedAt: "2026-08-20T00:00:00.000Z", status: "quarantined", rowCount: 2, expectedMinimumRows: 2, healthStatus: "quarantined", healthReport: { errors: ["field coverage below threshold: location"] }, rawOutput: "raw" });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
+  expect(await response.json()).toMatchObject({ runs: [{ status: "quarantined", healthStatus: "quarantined", healthReport: { errors: ["field coverage below threshold: location"] } }] });
 });
 
 test("summary endpoint exposes oracle validation separately from collector health", async () => {

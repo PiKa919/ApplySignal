@@ -17,6 +17,10 @@ export interface CollectorRunResult {
   stderr: string;
   rows: Record<string, unknown>[];
   expectedMinimumRows: number;
+  requiredFields?: string[];
+  identityField?: string;
+  expectedHost?: string;
+  minimumCoverage?: number;
 }
 
 export async function runBrightDataCollector(request: CollectorRequest): Promise<CollectorRunResult> {

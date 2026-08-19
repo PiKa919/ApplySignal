@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
   status TEXT NOT NULL,
   row_count INTEGER NOT NULL DEFAULT 0,
   expected_minimum_rows INTEGER,
+  health_status TEXT NOT NULL DEFAULT 'healthy',
+  health_report TEXT NOT NULL DEFAULT '{}',
   raw_output TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
@@ -75,5 +77,13 @@ export function createDatabase(path: string): Database {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
   db.exec(schema);
+  for (const statement of [
+    "ALTER TABLE scrape_runs ADD COLUMN health_status TEXT NOT NULL DEFAULT 'healthy'",
+    "ALTER TABLE scrape_runs ADD COLUMN health_report TEXT NOT NULL DEFAULT '{}'",
+  ]) {
+    try { db.exec(statement); } catch (error) {
+      if (!String(error).includes("duplicate column name")) throw error;
+    }
+  }
   return db;
 }
