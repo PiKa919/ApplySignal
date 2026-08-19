@@ -2,7 +2,7 @@ import type { JobObservation } from "./observations";
 
 export const RECIPROCITY_CATEGORIES = [
   "role", "location", "experience", "responsibilities", "skills", "compensation", "deadline", "process",
-  "identity", "compensation_history", "availability", "education", "employment_history", "resume",
+  "identity", "compensation_history", "availability", "relocation", "education", "employment_history", "resume",
 ] as const;
 
 export type ReciprocityCategory = (typeof RECIPROCITY_CATEGORIES)[number];
