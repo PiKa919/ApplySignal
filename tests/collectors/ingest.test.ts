@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test";
 import { createDatabase } from "../../src/storage/database";
-import { ingestCollectorResult } from "../../src/collectors/ingest";
+import { expandCollectorRows, ingestCollectorResult } from "../../src/collectors/ingest";
 import { listScrapeRuns } from "../../src/storage/repository";
 
 test("rejects a successful-looking collector result with silent cardinality loss", () => {
@@ -20,4 +20,13 @@ test("records a failed collector run before surfacing the failure", () => {
     status: "failed", rawOutput: "", stderr: "generation failed", rows: [], expectedMinimumRows: 1,
   } as any)).toThrow("collector failed");
   expect(listScrapeRuns(db)).toMatchObject([{ runId: "run-failed", status: "failed", rowCount: 0 }]);
+});
+
+test("flattens and deduplicates nested job envelopes before normalization", () => {
+  const rows = expandCollectorRows([
+    { jobs: [{ job_id: "A", title: "Backend", job_detail_url: "https://example.test/A" }] },
+    { jobs: [{ job_id: "A", title: "Backend", job_detail_url: "https://example.test/A" }, { job_id: "B", title: "Designer", job_detail_url: "https://example.test/B" }] },
+  ]);
+  expect(rows).toHaveLength(2);
+  expect(rows.map((row) => row.source_job_id ?? row.job_id)).toEqual(["A", "B"]);
 });

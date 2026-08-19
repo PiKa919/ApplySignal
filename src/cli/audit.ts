@@ -10,6 +10,7 @@ export interface AuditSummary {
   activeSources: string[];
   liveObservationSources: string[];
   scopedSources: string[];
+  partialSources: string[];
   failedSources: string[];
   unresolvedSources: string[];
 }
@@ -24,6 +25,7 @@ export function auditDatabase(db: Database): AuditSummary {
     activeSources,
     liveObservationSources: [...new Set(observations.filter((observation) => observation.dataMode === "live").map((observation) => observation.sourceId))],
     scopedSources: SOURCE_CATALOG.filter((source) => source.status === "live_scoped").map((source) => source.sourceId),
+    partialSources: SOURCE_CATALOG.filter((source) => source.status === "partial").map((source) => source.sourceId),
     failedSources: SOURCE_CATALOG.filter((source) => source.status === "failed_generation").map((source) => source.sourceId),
     unresolvedSources: SOURCE_CATALOG.filter((source) => source.status === "unresolved").map((source) => source.sourceId),
   };

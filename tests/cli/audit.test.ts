@@ -11,5 +11,6 @@ test("auditDatabase reports observations and source scope without collecting", (
   expect(result.observations).toBe(1);
   expect(result.runs).toBe(1);
   expect(result.activeSources).toContain("zfh");
+  expect(result.partialSources).toContain("postman");
   db.close();
 });

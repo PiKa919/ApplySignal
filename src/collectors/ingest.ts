@@ -5,6 +5,7 @@ import { saveApplicationFields } from "../storage/repository";
 import { RECIPROCITY_CATEGORIES, type ApplicationFieldObservation, type ReciprocityCategory } from "../domain/reciprocity";
 import type { Database } from "bun:sqlite";
 import type { CollectorRunResult } from "./brightdata";
+import type { RawJobRow } from "../domain/observations";
 
 export interface IngestSummary {
   runId: string;
@@ -14,23 +15,36 @@ export interface IngestSummary {
   dataMode: "live" | "fixture";
 }
 
+export function expandCollectorRows(rows: Record<string, unknown>[]): RawJobRow[] {
+  const nested = rows.flatMap((row) => Array.isArray(row.jobs) ? row.jobs.filter((job): job is RawJobRow => typeof job === "object" && job !== null) : []);
+  const candidates = nested.length > 0 ? nested : rows as RawJobRow[];
+  const seen = new Set<string>();
+  return candidates.filter((row) => {
+    const key = String(row.source_job_id ?? row.job_id ?? row.url ?? row.job_detail_url ?? JSON.stringify(row));
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function ingestCollectorResult(db: Database, result: CollectorRunResult, dataMode: "live" | "fixture" = "live"): IngestSummary {
-  const run = (status: string) => saveScrapeRun(db, { runId: result.runId, collectorId: result.collectorId, sourceId: result.sourceId, observedAt: result.observedAt, status, rowCount: result.rows.length, expectedMinimumRows: result.expectedMinimumRows, rawOutput: result.rawOutput });
+  const rows = expandCollectorRows(result.rows);
+  const run = (status: string) => saveScrapeRun(db, { runId: result.runId, collectorId: result.collectorId, sourceId: result.sourceId, observedAt: result.observedAt, status, rowCount: rows.length, expectedMinimumRows: result.expectedMinimumRows, rawOutput: result.rawOutput });
   if (result.status !== "success") {
     run("failed");
     throw new Error(`collector failed: ${result.stderr || "unknown Bright Data error"}`);
   }
-  if (result.rows.length < result.expectedMinimumRows) {
+  if (rows.length < result.expectedMinimumRows) {
     run("cardinality_failed");
-    throw new Error(`cardinality check failed: expected at least ${result.expectedMinimumRows}, received ${result.rows.length}`);
+    throw new Error(`cardinality check failed: expected at least ${result.expectedMinimumRows}, received ${rows.length}`);
   }
   run(result.status);
-  const observationIds = result.rows.map((row) => {
+  const observationIds = rows.map((row) => {
     const observation = normalizeJobObservation(row, { sourceId: result.sourceId, sourceUrl: result.sourceUrl ?? String(row.source_url ?? ""), observedAt: result.observedAt });
     saveObservation(db, { ...observation, dataMode });
     return observation.observationId;
   });
-  return { runId: result.runId, sourceId: result.sourceId, observationIds, rowCount: result.rows.length, dataMode };
+  return { runId: result.runId, sourceId: result.sourceId, observationIds, rowCount: rows.length, dataMode };
 }
 
 export function createFixtureDatabase(path = ":memory:"): Database {

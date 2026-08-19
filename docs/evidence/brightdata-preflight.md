@@ -23,7 +23,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | BrowserStack | Unresolved generation | `c_mt0iq7oysxok3r6q4` reached preview picker but did not complete during bounded polling |
 | Meesho | Failed generation | Two custom Scraper Studio generation attempts failed; no live data claimed |
 | CRED | Pending | Candidate-specific Marketplace/library lookup still required |
-| Postman | Validation candidate | Greenhouse oracle is useful; custom-source eligibility still requires lookup |
+| Postman | Partial validation source | 50 normalized Scraper Studio IDs matched 111 public Greenhouse IDs; extraction remains incomplete |
 | Razorpay | Keep as live candidate | Direct Greenhouse board collector completed and returned 26 public listing rows |
 
 ## Collection-generation outcomes
@@ -47,6 +47,13 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | BrowserStack Workday detail | `c_mt0k5nx71ktmkmh3ul` | Scoped public detail generation remained in schema generation at attempt 182 when bounded polling stopped | Unresolved; no live output claimed |
 | Palantir Lever fallback | `c_mt0ivvftqptif51k9` | Completed; realtime switched to batch after page limit and returned 307 successful rows | Live listing dataset ingested; batch handoff retained as run evidence |
 | Razorpay Greenhouse board (direct) | `c_mt0jo8sc1rqz4ef0pb` | Completed; returned 26 successful rows from the public linked board | Live listing dataset ingested; branded-page routing remains recorded as a separate partial attempt |
+
+## Postman scoped recovery and oracle check — 2026-08-20
+
+- Existing collector `c_mt0kenri1czi6msxio` was invoked once against a public Postman Greenhouse detail URL to avoid another board request.
+- Bright Data returned a 111-row outer envelope whose usable records were nested under `jobs`; local ingestion now flattens and deduplicates that shape to 50 unique job observations.
+- A second, explicit board-URL attempt hit the realtime page limit and handed off to batch `j_mt0l8qht2gqsa4doyh`; local polling was stopped immediately and no output was claimed.
+- The public Greenhouse oracle returned 111 job IDs. The normalized Scraper Studio output matched 50 and missed 61, so Postman remains `partial`, not live.
 
 ## Collector created
 
