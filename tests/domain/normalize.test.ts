@@ -25,4 +25,18 @@ describe("normalizeJobObservation", () => {
     expect(result.salary).toBe(null);
     expect(result.provenance.salary).toEqual({ kind: "unknown" });
   });
+
+  test("accepts Bright Data detail URL and date-text field names", () => {
+    const result = normalizeJobObservation({
+      source_job_id: "live-1",
+      title: "Operations Associate",
+      posted_date_text: "2026-08-19 17:55:06 UTC",
+      job_detail_url: "https://example.test/jobs/live-1",
+      application_url: "https://example.test/jobs/live-1/apply",
+    }, { sourceId: "zfh", sourceUrl: "https://example.test/jobs", observedAt: "2026-08-20T00:00:00.000Z" });
+
+    expect(result.postedDate).toBe("2026-08-19");
+    expect(result.postedDateQuality).toBe("exact");
+    expect(result.url).toBe("https://example.test/jobs/live-1");
+  });
 });

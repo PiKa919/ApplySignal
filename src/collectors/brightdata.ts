@@ -1,6 +1,7 @@
 export interface CollectorRequest {
   collectorId: string;
   sourceId: string;
+  sourceUrl?: string;
   url?: string;
   expectedMinimumRows?: number;
 }
@@ -9,6 +10,7 @@ export interface CollectorRunResult {
   runId: string;
   collectorId: string;
   sourceId: string;
+  sourceUrl?: string;
   observedAt: string;
   status: "success" | "failed";
   rawOutput: string;
@@ -34,8 +36,8 @@ export async function runBrightDataCollector(request: CollectorRequest): Promise
       const parsed: unknown = JSON.parse(stdout);
       rows = Array.isArray(parsed) ? parsed as Record<string, unknown>[] : [parsed as Record<string, unknown>];
     } catch {
-      return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, observedAt, status: "failed", rawOutput: stdout, stderr: `${stderr}\nBright Data output was not valid JSON.`, rows: [], expectedMinimumRows: request.expectedMinimumRows ?? 1 };
+    return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: "failed", rawOutput: stdout, stderr: `${stderr}\nBright Data output was not valid JSON.`, rows: [], expectedMinimumRows: request.expectedMinimumRows ?? 1 };
     }
   }
-  return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, observedAt, status: exitCode === 0 ? "success" : "failed", rawOutput: stdout, stderr, rows, expectedMinimumRows: request.expectedMinimumRows ?? 1 };
+  return { runId: `run_${Date.now()}`, collectorId: request.collectorId, sourceId: request.sourceId, sourceUrl: request.sourceUrl, observedAt, status: exitCode === 0 ? "success" : "failed", rawOutput: stdout, stderr, rows, expectedMinimumRows: request.expectedMinimumRows ?? 1 };
 }

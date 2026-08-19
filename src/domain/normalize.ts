@@ -42,18 +42,20 @@ const provenanceFor = (value: unknown): ProvenanceValue => {
 };
 
 export function normalizeJobObservation(input: RawJobRow, context: NormalizationContext): JobObservation {
-  const posted = dateValue(input.posted_date);
-  const closing = dateValue(input.closing_date);
-  const sourceJobId = text(input.source_job_id);
+  const postedRaw = input.posted_date ?? input.posted_date_text;
+  const closingRaw = input.closing_date ?? input.closing_date_text;
+  const posted = dateValue(postedRaw);
+  const closing = dateValue(closingRaw);
+  const sourceJobId = text(input.source_job_id ?? input.job_id);
   const title = text(input.title);
   const location = text(input.location);
   const employmentType = text(input.employment_type);
   const description = text(input.description);
   const salary = text(input.salary);
   const applicationUrl = url(input.application_url);
-  const listingUrl = url(input.url);
+  const listingUrl = url(input.url ?? input.job_detail_url ?? input.product_page_url);
   const provenance: JobProvenance = {
-    sourceJobId: provenanceFor(input.source_job_id),
+    sourceJobId: provenanceFor(input.source_job_id ?? input.job_id),
     title: provenanceFor(input.title),
     location: provenanceFor(input.location),
     employmentType: provenanceFor(input.employment_type),
@@ -62,7 +64,7 @@ export function normalizeJobObservation(input: RawJobRow, context: Normalization
     description: provenanceFor(input.description),
     salary: provenanceFor(input.salary),
     applicationUrl: provenanceFor(input.application_url),
-    url: provenanceFor(input.url),
+    url: provenanceFor(input.url ?? input.job_detail_url ?? input.product_page_url),
   };
 
   const fingerprint = [context.sourceId, sourceJobId, title, location, listingUrl, context.observedAt].join("|");
