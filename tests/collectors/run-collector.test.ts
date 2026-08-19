@@ -1,5 +1,6 @@
 import { expect, test } from "bun:test";
 import { collectorRequestFromEnv } from "../../src/cli/run-collector";
+import { shouldSkipPaidRun } from "../../src/collectors/policy";
 
 test("builds a collector request from non-secret environment configuration", () => {
   expect(collectorRequestFromEnv({
@@ -13,4 +14,13 @@ test("builds a collector request from non-secret environment configuration", () 
 
 test("rejects a collector command without an ID", () => {
   expect(() => collectorRequestFromEnv({ BRIGHTDATA_SOURCE_ID: "zfh" })).toThrow("BRIGHTDATA_COLLECTOR_ID");
+});
+
+test("skips a recent successful run unless an explicit force flag is set", () => {
+  const request = { collectorId: "c_test", sourceId: "zfh" };
+  const runs = [{ collectorId: "c_test", sourceId: "zfh", status: "success", observedAt: "2026-08-20T11:00:00.000Z" }] as any;
+  const now = new Date("2026-08-20T12:00:00.000Z");
+
+  expect(shouldSkipPaidRun(runs, request, now)).toEqual({ skip: true, reason: "recent_success" });
+  expect(shouldSkipPaidRun(runs, request, now, { force: true })).toEqual({ skip: false });
 });

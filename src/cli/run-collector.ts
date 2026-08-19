@@ -1,6 +1,8 @@
 import { createDatabase } from "../storage/database";
+import { listScrapeRuns } from "../storage/repository";
 import { ingestCollectorResult } from "../collectors/ingest";
 import { runBrightDataCollector, type CollectorRequest } from "../collectors/brightdata";
+import { shouldSkipPaidRun } from "../collectors/policy";
 
 export type CollectorEnvironment = Record<string, string | undefined>;
 
@@ -14,14 +16,30 @@ export function collectorRequestFromEnv(env: CollectorEnvironment): CollectorReq
   return { collectorId, sourceId, sourceUrl: env.BRIGHTDATA_SOURCE_URL, url: env.BRIGHTDATA_TARGET_URL, expectedMinimumRows: minimum };
 }
 
+export async function runCollectorFromEnv(env: CollectorEnvironment = process.env): Promise<void> {
+  const request = collectorRequestFromEnv(env);
+  const db = createDatabase(env.APPLYSIGNAL_DB ?? "data/applysignal.db");
+  try {
+    const cooldownHours = Number(env.BRIGHTDATA_COOLDOWN_HOURS ?? "24");
+    if (!Number.isFinite(cooldownHours) || cooldownHours < 0) throw new Error("BRIGHTDATA_COOLDOWN_HOURS must be a non-negative number");
+    const decision = shouldSkipPaidRun(listScrapeRuns(db), request, new Date(), {
+      cooldownHours,
+      force: env.APPLYSIGNAL_FORCE_PAID_RUN === "true",
+    });
+    if (decision.skip) {
+      console.log(JSON.stringify({ skipped: true, reason: decision.reason, sourceId: request.sourceId, collectorId: request.collectorId }));
+      return;
+    }
+    const result = await runBrightDataCollector(request);
+    console.log(JSON.stringify(ingestCollectorResult(db, result)));
+  } finally {
+    db.close();
+  }
+}
+
 if (import.meta.main) {
   try {
-    const request = collectorRequestFromEnv(process.env);
-    const result = await runBrightDataCollector(request);
-    const db = createDatabase(process.env.APPLYSIGNAL_DB ?? "data/applysignal.db");
-    const summary = ingestCollectorResult(db, result);
-    db.close();
-    console.log(JSON.stringify(summary));
+    await runCollectorFromEnv();
   } catch (error) {
     console.error(error instanceof Error ? error.message : String(error));
     process.exit(1);
