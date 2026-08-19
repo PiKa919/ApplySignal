@@ -12,7 +12,10 @@ async function load() {
   const [summary, jobResponse] = await Promise.all([fetch("/api/summary").then((r) => r.json()), fetch("/api/jobs").then((r) => r.json())]);
   const jobsData = jobResponse as Job[];
   const runs = (summary.runs ?? []) as Array<{ sourceId: string; status: string; rowCount: number; observedAt: string }>;
-  health.innerHTML = runs.length ? runs.map((run) => `<div class="health-card ${esc(run.status)}"><div class="health-source">${esc(run.sourceId)}</div><div class="health-meta">${esc(run.status)} · ${esc(run.rowCount)} rows · ${esc(new Date(run.observedAt).toLocaleString())}</div></div>`).join("") : `<div class="muted">No collector runs recorded yet.</div>`;
+  const catalog = (summary.sourceCatalog ?? []) as Array<{ sourceId: string; name: string; status: string; note: string }>;
+  const cards = catalog.map((source) => `<div class="health-card ${esc(source.status)}"><div class="health-source">${esc(source.name)}</div><div class="health-meta">${esc(source.status)} · ${esc(source.note)}</div></div>`);
+  const runCards = runs.map((run) => `<div class="health-card ${esc(run.status)}"><div class="health-source">Run: ${esc(run.sourceId)}</div><div class="health-meta">${esc(run.status)} · ${esc(run.rowCount)} rows · ${esc(new Date(run.observedAt).toLocaleString())}</div></div>`);
+  health.innerHTML = [...cards, ...runCards].join("") || `<div class="muted">No collector runs recorded yet.</div>`;
   metrics.innerHTML = [
     ["OBSERVATIONS", jobsData.length],
     ["KNOWN SOURCE CONFIDENCE", `${Math.round((jobsData.reduce((sum, job) => sum + (job.sourceConfidence ?? 0), 0) / Math.max(jobsData.length, 1)) * 100)}%`],

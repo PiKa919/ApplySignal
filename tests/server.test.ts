@@ -15,3 +15,12 @@ test("summary endpoint exposes collector health separately from observations", a
   const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
   expect(await response.json()).toMatchObject({ runs: [{ sourceId: "visa", status: "failed", rowCount: 0 }] });
 });
+
+test("summary endpoint exposes source catalog states without treating them as observations", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/api/summary"));
+  const body = await response.json();
+  expect(body.sourceCatalog).toEqual(expect.arrayContaining([
+    expect.objectContaining({ sourceId: "zfh", status: "live" }),
+    expect.objectContaining({ sourceId: "visa", status: "failed_generation" }),
+  ]));
+});

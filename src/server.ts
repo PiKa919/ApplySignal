@@ -1,5 +1,6 @@
 import { analyzeReciprocity } from "./domain/reciprocity";
 import { diffObservations } from "./domain/lifecycle";
+import { SOURCE_CATALOG } from "./domain/source-catalog";
 import { listApplicationFields, listLatestObservations, listScrapeRuns } from "./storage/repository";
 import type { Database } from "bun:sqlite";
 
@@ -15,6 +16,7 @@ export function createAppServer(db: Database) {
       if (url.pathname === "/api/summary") {
         const jobs = observations();
         return json({
+          sourceCatalog: SOURCE_CATALOG,
           runs: listScrapeRuns(db),
           sourceConfidence: jobs.map((job) => ({ observationId: job.observationId, sourceId: job.sourceId, confidence: job.sourceConfidence, dataMode: job.dataMode })),
           analyses: jobs.map((job) => ({ observationId: job.observationId, ...analysisFor(job) })),
