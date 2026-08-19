@@ -22,7 +22,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Cadence | Live scoped detail | One public Workday detail collector completed; full-board generation remains unresolved |
 | BrowserStack | Unresolved generation | `c_mt0iq7oysxok3r6q4` reached preview picker but did not complete during bounded polling |
 | Meesho | Failed generation | Two custom Scraper Studio generation attempts failed; no live data claimed |
-| CRED | Pending | Candidate-specific Marketplace/library lookup still required |
+| CRED | Unresolved after bounded detail probe | Candidate-specific Marketplace/library lookup still required; one public Lever detail attempt returned zero rows and was quarantined |
 | Postman | Partial validation source | 50 normalized Scraper Studio IDs matched 111 public Greenhouse IDs; extraction remains incomplete |
 | Razorpay | Keep as live candidate | Direct Greenhouse board collector completed and returned 26 public listing rows |
 
@@ -38,7 +38,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | Postman Greenhouse board | `c_mt0jgbmgtpeo9ghcx` | Generation reached preview picker at attempt 180 when bounded polling stopped | Unresolved; no live output claimed |
 | Postman Greenhouse board retry | `c_mt0kenri1czi6msxio` / batch `j_mt0kix8hl18ggr55o` | Collector completed, but the run hit the realtime page limit and entered batch polling; local polling stopped at attempt 13 before output | Unresolved; no rows persisted and no rerun planned without a credit decision |
 | CRED openings | `c_mt0hphi210sst7z27` | Generation reached preview-picker but remained unresolved after bounded polling | Unresolved; no live output claimed |
-| CRED Lever board | `c_mt0jsv3s22rjyq5w83` | Direct public board generation reached code generation at attempt 184 when bounded polling stopped | Unresolved; no live output claimed |
+| CRED Lever board | `c_mt0jsv3s22rjyq5w83` | Direct public board generation reached code generation at attempt 184 when bounded polling stopped; one later public detail probe returned zero rows (`run_1787178058137`) | Unresolved; the zero-row run was quarantined and no retry is planned |
 | Razorpay branded careers | `c_mt0huks12jww1ro77d` | Completed and returned the public Greenhouse board URL | Partial success; branded-page routing observed, but not a jobs dataset |
 | Razorpay Greenhouse board | `c_mt0hxxvn1inyto72ik` | Generation remained in code generation after bounded polling | Unresolved; no live output claimed |
 | Cadence Workday | `c_mt0il1zsoiz0umxxe` | Generation reached code generation at attempt 181 when bounded polling stopped | Unresolved; no live output claimed |
