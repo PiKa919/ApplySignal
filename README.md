@@ -40,7 +40,7 @@ BRIGHTDATA_TARGET_URL=https://careers.zerodhafundhouse.com/jobs \
 bun run run:collector
 ```
 
-The first live collector was created in Scraper Studio for Zerodha Fund House. The live run returned 13 listing observations. A second Scraper Studio collector inspected the public Senior Backend Engineer application form and returned 17 visible fields without submitting the form or collecting candidate values. `run:collector` applies the minimum-row cardinality guard and persists the run before the dashboard reads it.
+The first live collector was created in Scraper Studio for Zerodha Fund House. The live run returned 13 listing observations. A second Scraper Studio collector inspected the public Senior Backend Engineer application form and returned 17 visible fields without submitting the form or collecting candidate values. The Palantir Lever fallback collector completed through a Bright Data batch handoff and returned 307 public listing observations. `run:collector` applies the minimum-row cardinality guard and persists the run before the dashboard reads it.
 
 The approved self-healing run added `closing_date_text`, returned `null` when no public deadline was visible, and preserved the existing listing fields. Evidence is documented in `docs/evidence/`.
 
