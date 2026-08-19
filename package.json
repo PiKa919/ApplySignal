@@ -1,0 +1,9 @@
+{
+  "name": "applysignal",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "bun test",
+    "dev": "bun run src/index.ts"
+  }
+}
