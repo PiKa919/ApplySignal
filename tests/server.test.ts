@@ -10,6 +10,11 @@ test("summary endpoint exposes source confidence separately from job analysis", 
   expect(await response.json()).toMatchObject({ sourceConfidence: expect.any(Array), analyses: expect.any(Array) });
 });
 
+test("dashboard includes the AI-use disclosure", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/"));
+  expect(await response.text()).toContain("AI USE DISCLOSURE");
+});
+
 test("summary endpoint exposes collector health separately from observations", async () => {
   const db = createDatabase(":memory:");
   saveScrapeRun(db, { runId: "run-1", collectorId: "collector-1", sourceId: "visa", observedAt: "2026-08-20T00:00:00.000Z", status: "failed", rowCount: 0, expectedMinimumRows: 1, rawOutput: "" });
