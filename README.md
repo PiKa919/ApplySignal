@@ -33,10 +33,14 @@ The live collector boundary is `src/collectors/brightdata.ts`. Credentials are s
 ```bash
 brightdata login
 brightdata zones
-brightdata scraper run <collector-id> <public-url> --pretty -o artifacts/run.json
+BRIGHTDATA_COLLECTOR_ID=<collector-id> \
+BRIGHTDATA_SOURCE_ID=zfh \
+BRIGHTDATA_SOURCE_URL=https://careers.zerodhafundhouse.com/jobs \
+BRIGHTDATA_TARGET_URL=https://careers.zerodhafundhouse.com/jobs \
+bun run run:collector
 ```
 
-The first live collector was created in Scraper Studio for Zerodha Fund House. The live run returned 13 listing observations. A second Scraper Studio collector inspected the public Senior Backend Engineer application form and returned 17 visible fields without submitting the form or collecting candidate values.
+The first live collector was created in Scraper Studio for Zerodha Fund House. The live run returned 13 listing observations. A second Scraper Studio collector inspected the public Senior Backend Engineer application form and returned 17 visible fields without submitting the form or collecting candidate values. `run:collector` applies the minimum-row cardinality guard and persists the run before the dashboard reads it.
 
 The approved self-healing run added `closing_date_text`, returned `null` when no public deadline was visible, and preserved the existing listing fields. Evidence is documented in `docs/evidence/`.
 

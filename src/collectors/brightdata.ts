@@ -23,7 +23,7 @@ export async function runBrightDataCollector(request: CollectorRequest): Promise
   const observedAt = new Date().toISOString();
   const args = ["scraper", "run", request.collectorId];
   if (request.url) args.push(request.url);
-  args.push("--format", "json");
+  args.push("--pretty");
   const process = Bun.spawn(["brightdata", ...args], { stdout: "pipe", stderr: "pipe" });
   const [stdout, stderr, exitCode] = await Promise.all([
     new Response(process.stdout).text(),
