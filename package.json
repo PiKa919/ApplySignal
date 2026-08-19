@@ -5,6 +5,7 @@
   "scripts": {
     "test": "bun test",
     "dev": "bun run src/index.ts",
+    "audit": "bun run src/cli/audit.ts",
     "seed:fixture": "bun run src/cli/seed-fixture.ts",
     "run:collector": "bun run src/cli/run-collector.ts"
   }
