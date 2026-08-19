@@ -32,3 +32,4 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 - Target: `https://careers.zerodhafundhouse.com/jobs`
 - Schema intent: public listing ID, title, department, location, employment type, raw posted/closing date text, description, detail URL, and application URL
 - Creation status: `done`
+- Self-healing status: approved repair added `closing_date_text`; healed rerun returned 13 rows.
