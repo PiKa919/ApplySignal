@@ -17,6 +17,6 @@ export const SOURCE_CATALOG: SourceCatalogEntry[] = [
   { sourceId: "browserstack", name: "BrowserStack Workday", url: "https://browserstack.wd3.myworkdayjobs.com/External", status: "unresolved", role: "candidate", note: "Collector c_mt0iq7oysxok3r6q4 reached preview picker but did not complete during bounded polling." },
   { sourceId: "meesho", name: "Meesho Careers", url: "https://www.meesho.io/jobs", status: "failed_generation", role: "candidate", note: "Bright Data returned a terminal template-generation failure." },
   { sourceId: "cred", name: "CRED Careers", url: "https://careers.cred.club/openings", status: "unresolved", role: "candidate", note: "Generation reached preview picker but did not complete in the bounded run." },
-  { sourceId: "postman", name: "Postman Careers", url: "https://www.postman.com/company/careers/open-positions/", status: "unresolved", role: "validation_oracle", note: "Branded-source generation did not complete in the bounded run." },
+  { sourceId: "postman", name: "Postman Careers", url: "https://www.postman.com/company/careers/open-positions/", status: "unresolved", role: "validation_oracle", note: "Collector c_mt0jgbmgtpeo9ghcx reached preview generation but did not complete during bounded polling." },
   { sourceId: "razorpay", name: "Razorpay Careers", url: "https://razorpay.com/careers/", status: "partial", role: "candidate", note: "Branded page routed to the public Greenhouse board; listing extraction remains unresolved." },
 ];
