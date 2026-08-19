@@ -29,6 +29,15 @@ test("skips a recent successful run unless an explicit force flag is set", () =>
   expect(shouldSkipPaidRun(runs, request, now, { force: true })).toEqual({ skip: false });
 });
 
+test("skips a recent failed or quarantined run unless an explicit force flag is set", () => {
+  const request = { collectorId: "c_test", sourceId: "cred" };
+  const runs = [{ collectorId: "c_test", sourceId: "cred", status: "cardinality_failed", healthStatus: "quarantined", observedAt: "2026-08-20T11:30:00.000Z" }] as any;
+  const now = new Date("2026-08-20T12:00:00.000Z");
+
+  expect(shouldSkipPaidRun(runs, request, now)).toEqual({ skip: true, reason: "recent_failure" });
+  expect(shouldSkipPaidRun(runs, request, now, { force: true })).toEqual({ skip: false });
+});
+
 test("rejects an invalid field-coverage threshold", () => {
   expect(() => collectorRequestFromEnv({ BRIGHTDATA_COLLECTOR_ID: "c_test", BRIGHTDATA_SOURCE_ID: "zfh", BRIGHTDATA_MIN_COVERAGE: "1.2" })).toThrow("BRIGHTDATA_MIN_COVERAGE");
 });

@@ -102,6 +102,8 @@ Bright Data run → transport/structural/semantic health gate
 
 `buildHealDiagnosis` generates a field-specific prompt from observed drift but never invokes `brightdata scraper heal`, approves a preview, or reruns a paid job automatically. The current evidence is in [`docs/evidence/health-contract.md`](docs/evidence/health-contract.md) and [`docs/evidence/heal-diagnosis.md`](docs/evidence/heal-diagnosis.md).
 
+The credit-free fault-injection demo can be reproduced with `bun run demo:health`. It uses the controlled fixture, removes rows and a location field, then writes `artifacts/applysignal-health-demo.json`. The artifact shows the healthy baseline, quarantined current run, retained last-known-good decision, field-specific review prompt, `approvalRequired: true`, `brokenRunCommitted: false`, and `brightDataCalls: 0`. It does not contact Bright Data.
+
 ## Edge cases and limitations
 
 The supported edge-case contract is listed in [`docs/edge-cases.md`](docs/edge-cases.md). Live coverage is not claimed for unresolved or failed-generation targets; the source catalog exposes those states explicitly. Greenhouse/Lever representations are validation or fallback sources, not proof that every branded target is scrapeable.
@@ -116,7 +118,7 @@ Codex/ChatGPT was used for development assistance, debugging, implementation rev
 
 Collector creation and live runs are paid external actions. The project keeps one completed collector per target, prefers scoped detail pages or small boards when full-board generation is unreliable, applies a minimum-row guard, and does not rerun a target solely for confirmation. A run handed to Bright Data batch mode is treated as pending until output is returned; it is not retriggered automatically after a local poll is stopped.
 
-The collector CLI also skips a successful run for the same collector/source within the default 24-hour cooldown before invoking Bright Data. Set `BRIGHTDATA_COOLDOWN_HOURS=0` for a deliberate no-cooldown run, or set `APPLYSIGNAL_FORCE_PAID_RUN=true` when an explicit rerun is justified.
+The collector CLI skips any recent run for the same collector/source within the default 24-hour cooldown before invoking Bright Data. Successful runs report `recent_success`; failed or quarantined runs report `recent_failure`. Set `BRIGHTDATA_COOLDOWN_HOURS=0` for a deliberate no-cooldown run, or set `APPLYSIGNAL_FORCE_PAID_RUN=true` when an explicit rerun is justified.
 
 Ingestion applies a structural and semantic health gate after envelope expansion: minimum cardinality, required-field coverage, duplicate identity detection, expected URL-host checks, obvious title/location swaps, and impossible exact date ordering. A suspicious result is persisted as `quarantined` with its health report and produces no job observations. `compareDistributionalHealth` reports baseline drift as review evidence; distribution changes do not trigger automatic healing by themselves.
 
