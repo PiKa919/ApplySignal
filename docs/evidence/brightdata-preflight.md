@@ -12,6 +12,19 @@
 
 This is evidence about the authenticated CLI pipeline catalog, not proof that Bright Data's broader 660+ web-scraper library has no matching template. The installed CLI exposes `pipelines list`, but it does not expose a Scrapers Library/Marketplace search command; `brightdata scraper --help` exposes only `create`, `run`, `heal`, and `approve`. Bright Data's official documentation says the Scrapers Library is browsed from the web dashboard and that Scraper Studio is for targets not found in the library ([library quickstart](https://docs.brightdata.com/datasets/scrapers/scrapers-library/quickstart), [Scraper Studio FAQ](https://docs.brightdata.com/datasets/scraper-studio/faqs)). The public FAQ page did not match Visa, Cadence, BrowserStack, Meesho, Zerodha Fund House, CRED, Postman, or Razorpay by name, but that page is not a substitute for an authenticated per-target dashboard lookup. The final submission must retain source-level Marketplace/library evidence before claiming a target is uncovered.
 
+## Zero-credit public URL preflight — 2026-08-20
+
+`bun run preflight` performs an ordinary HTTP reachability check before any Bright Data collector is considered. It follows redirects, checks the expected host, records status/content type/body size, filters block indicators out of scripts/styles to avoid false positives, and always reports `brightDataCalls: 0`.
+
+| Source | Public URL result | Interpretation |
+| --- | --- | --- |
+| BrowserStack | HTTP 200, expected Workday host, 7,293 bytes, no block indicators | Public board reachable; existing Bright Data generation remains unresolved |
+| CRED | HTTP 200, expected host, 54,616 bytes, no visible-text block indicators | Public page reachable; existing collector/detail extraction remains unresolved |
+| Meesho | HTTP 403 with an explicit Access Denied body | Transport/access failure; no collector retry triggered |
+| Postman | HTTP 200, expected host, 207,741 bytes, no block indicators | Branded page reachable; existing extraction remains partial |
+
+Reachability is deliberately not promoted to a live source claim: the health gate and completed Scraper Studio output are still required.
+
 ## Candidate decisions
 
 | Candidate | Current decision | Evidence/status |

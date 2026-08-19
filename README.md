@@ -124,6 +124,16 @@ Ingestion applies a structural, semantic, and distributional health gate after e
 
 The collector CLI passes `BRIGHTDATA_REQUIRED_FIELDS`, `BRIGHTDATA_IDENTITY_FIELD`, `BRIGHTDATA_EXPECTED_HOST`, and `BRIGHTDATA_MIN_COVERAGE` into that contract. Optional transport evidence can also quarantine navigation failures, non-success HTTP responses, unexpected final hosts, empty bodies, or explicit block/CAPTCHA indicators. When transport evidence is unavailable from a collector output, the report records `transportStatus: unknown`; it does not infer transport success from row presence alone.
 
+Before a paid collector attempt, run the zero-credit public preflight when a target URL is known:
+
+```bash
+APPLYSIGNAL_PREFLIGHT_SOURCE_ID=browserstack \
+APPLYSIGNAL_PREFLIGHT_URL=https://browserstack.wd3.myworkdayjobs.com/External \
+bun run preflight
+```
+
+The preflight checks reachability and block/redirect evidence only; a reachable page is not treated as a successful collector.
+
 The authenticated CLI's `pipelines list` output is not the Scrapers Library. The CLI has no Marketplace/library search command, so the repository records the limitation explicitly in [`docs/evidence/brightdata-preflight.md`](docs/evidence/brightdata-preflight.md) and does not claim that a pipeline-list result proves library absence.
 
 When a baseline/current distribution comparison requires review, `buildHealDiagnosis` in `src/collectors/health.ts` generates a field-specific, review-gated prompt containing the affected coverage changes and record-count drift. It explicitly preserves the existing output schema and requires human approval after preview validation. It does not invoke `brightdata scraper heal`, approve a collector, or rerun a paid job.

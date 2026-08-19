@@ -8,6 +8,7 @@
     "audit": "bun run src/cli/audit.ts",
     "seed:fixture": "bun run src/cli/seed-fixture.ts",
     "demo:health": "bun run src/cli/demo.ts",
+    "preflight": "bun run src/cli/preflight.ts",
     "run:collector": "bun run src/cli/run-collector.ts",
     "run:application": "bun run src/cli/run-application.ts"
   }
