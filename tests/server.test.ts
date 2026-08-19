@@ -26,6 +26,11 @@ test("dashboard renders structural health state for collector runs", async () =>
   expect(await response.text()).toContain("healthStatus");
 });
 
+test("dashboard renders explicit source scope", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  expect(await response.text()).toContain("boardKind");
+});
+
 test("dashboard includes independent oracle validation", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   const body = await response.text();
@@ -76,8 +81,8 @@ test("summary endpoint exposes source catalog states without treating them as ob
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/api/summary"));
   const body = await response.json();
   expect(body.sourceCatalog).toEqual(expect.arrayContaining([
-    expect.objectContaining({ sourceId: "zfh", status: "live" }),
-    expect.objectContaining({ sourceId: "visa", status: "live_scoped" }),
+    expect.objectContaining({ sourceId: "zfh", status: "live", scope: expect.objectContaining({ boardKind: "all_jobs" }) }),
+    expect.objectContaining({ sourceId: "visa", status: "live_scoped", scope: expect.objectContaining({ boardKind: "subset" }) }),
   ]));
 });
 

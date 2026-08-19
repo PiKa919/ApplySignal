@@ -60,6 +60,8 @@ The collector CLI also skips a successful run for the same collector/source with
 
 Ingestion applies a structural health gate after envelope expansion: minimum cardinality, required-field coverage, duplicate identity detection, and expected URL-host checks. A suspicious result is persisted as `quarantined` with its health report and produces no job observations.
 
+Every catalog entry also declares its observation scope (`all_jobs`, `subset`, or `talent_pool`, plus geography and career filters). Health and cardinality claims are interpreted within that scope; a scoped zero is not treated as a failed full-board scrape.
+
 ## Evidence boundary
 
 Live and fixture data are separate. Missing salary, deadlines, or application fields remain unknown; they are not converted to negative claims. The app does not submit applications or access login-protected data.

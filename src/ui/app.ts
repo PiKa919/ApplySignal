@@ -25,11 +25,11 @@ async function load() {
   const jobsData = jobResponse as Job[];
   const runs = (summary.runs ?? []) as Array<{ sourceId: string; status: string; healthStatus: string; rowCount: number; observedAt: string }>;
   const validationResults = (summary.validationResults ?? []) as Array<{ sourceId: string; oracleId: string; status: string; agreementRate: number | null; matchedCount: number; oracleCount: number }>;
-  const catalog = (summary.sourceCatalog ?? []) as Array<{ sourceId: string; name: string; status: string; note: string }>;
+  const catalog = (summary.sourceCatalog ?? []) as Array<{ sourceId: string; name: string; status: string; note: string; scope: { geography: string | null; department: string | null; careerStage: string | null; employmentType: string | null; boardKind: string } }>;
   const activeSources = catalog.filter((source) => source.status === "live" || source.status === "live_scoped");
   const boardSources = catalog.filter((source) => source.status === "live");
   const scopedSources = catalog.filter((source) => source.status === "live_scoped");
-  const cards = catalog.map((source) => `<div class="health-card ${esc(source.status)}"><div class="health-source">${esc(source.name)}</div><div class="health-meta">${esc(source.status)} · ${esc(source.note)}</div></div>`);
+  const cards = catalog.map((source) => `<div class="health-card ${esc(source.status)}"><div class="health-source">${esc(source.name)}</div><div class="health-meta">${esc(source.status)} · scope ${esc(source.scope.boardKind)} · ${esc(source.note)}</div></div>`);
   const runCards = runs.map((run) => `<div class="health-card ${esc(run.status)}"><div class="health-source">Run: ${esc(run.sourceId)}</div><div class="health-meta">${esc(run.status)} · healthStatus ${esc(run.healthStatus)} · ${esc(run.rowCount)} rows · ${esc(new Date(run.observedAt).toLocaleString())}</div></div>`);
   const validationCards = validationResults.map((result) => `<div class="health-card ${esc(result.status)}"><div class="health-source">Oracle: ${esc(result.sourceId)}</div><div class="health-meta">${esc(result.status)} · ${result.agreementRate === null ? "insufficient data" : `${result.matchedCount}/${result.oracleCount} IDs matched (${Math.round(result.agreementRate * 100)}%)`} · ${esc(result.oracleId)}</div></div>`);
   health.innerHTML = [...cards, ...runCards, ...validationCards].join("") || `<div class="muted">No collector runs recorded yet.</div>`;
