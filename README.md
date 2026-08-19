@@ -10,7 +10,7 @@ The product keeps these signals separate:
 - lifecycle changes
 - source confidence
 
-The dashboard includes a side-by-side Compare surface for deciding where to spend application time. It shows freshness, disclosed-category transparency, application burden, lifecycle, and source confidence independently; it does not calculate a universal “worth applying” score.
+The dashboard includes a side-by-side Compare surface for deciding where to spend application time. It shows freshness, explainable transparency, application burden, lifecycle, and source confidence independently; it does not calculate a universal “worth applying” score.
 
 Its central view is the Reciprocity Gap: an explainable comparison between disclosed categories and requested application fields. A possible repost is an inference between two observations; it is never treated as proof that two postings represent one vacancy.
 

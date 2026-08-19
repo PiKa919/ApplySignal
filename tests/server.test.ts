@@ -22,6 +22,14 @@ test("dashboard includes active source coverage metrics", async () => {
   expect(await response.text()).toContain("ACTIVE SOURCES");
 });
 
+test("dashboard exposes the explainable transparency score and signal breakdown", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(body).toContain("TRANSPARENCY SCORE");
+  expect(body).toContain("transparencySignals");
+  expect(body).toContain("public disclosure signals");
+});
+
 test("dashboard serves browser-parseable JavaScript", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   const body = await response.text();
@@ -222,8 +230,8 @@ test("compare endpoint returns two jobs with independent signal dimensions", asy
   expect(response.status).toBe(200);
   expect(await response.json()).toMatchObject({
     dimensions: ["freshness", "transparency", "application_burden", "lifecycle", "source_confidence"],
-    left: { observationId: "left", analysis: { freshness: expect.any(Object) } },
-    right: { observationId: "right", analysis: { freshness: expect.any(Object) } },
+    left: { observationId: "left", analysis: { freshness: expect.any(Object), transparencyScore: expect.any(Number), transparencySignals: expect.any(Array) } },
+    right: { observationId: "right", analysis: { freshness: expect.any(Object), transparencyScore: expect.any(Number), transparencySignals: expect.any(Array) } },
   });
 });
 
