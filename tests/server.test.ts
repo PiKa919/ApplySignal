@@ -23,7 +23,9 @@ test("dashboard includes active source coverage metrics", async () => {
 
 test("dashboard includes independent oracle validation", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
-  expect(await response.text()).toContain("ORACLE VALIDATION");
+  const body = await response.text();
+  expect(body).toContain("ORACLE VALIDATION");
+  expect(body).toContain("IDs matched");
 });
 
 test("job detail UI includes evidence links and raw observed fields", async () => {
