@@ -102,11 +102,16 @@ export function listLatestObservations(db: Database, sourceId?: string): Array<J
 }
 
 export function saveApplicationFields(db: Database, observationId: string, fields: ApplicationFieldObservation[]): void {
-  const insert = db.query("INSERT INTO application_fields (observation_id, label, category, required) VALUES ($observationId, $label, $category, $required)");
-  for (const field of fields) insert.run({ observationId, label: field.label, category: field.category, required: field.required === null ? null : Number(field.required) });
+  const insert = db.query("INSERT INTO application_fields (observation_id, label, category, required) VALUES (?, ?, ?, ?)");
+  for (const field of fields) insert.run(observationId, field.label, field.category, field.required === null ? null : Number(field.required));
+}
+
+export function listApplicationFields(db: Database, observationId: string): ApplicationFieldObservation[] {
+  const rows = db.query("SELECT label, category, required FROM application_fields WHERE observation_id = ? ORDER BY field_id").all(observationId) as Array<{ label: string; category: ApplicationFieldObservation["category"]; required: number | null }>;
+  return rows.map((row) => ({ label: row.label, category: row.category, required: row.required === null ? null : row.required === 1 }));
 }
 
 export function saveInference(db: Database, inference: PostingInference): void {
-  db.query("INSERT INTO posting_inferences (type, confidence, signals_json, observation_ids_json) VALUES ($type, $confidence, $signals, $observationIds)")
-    .run({ type: inference.type, confidence: inference.confidence, signals: JSON.stringify(inference.signals), observationIds: JSON.stringify(inference.observationIds) });
+  db.query("INSERT INTO posting_inferences (type, confidence, signals_json, observation_ids_json) VALUES (?, ?, ?, ?)")
+    .run(inference.type, inference.confidence, JSON.stringify(inference.signals), JSON.stringify(inference.observationIds));
 }
