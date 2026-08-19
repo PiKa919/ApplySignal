@@ -12,6 +12,8 @@ The product keeps these signals separate:
 
 Its central view is the Reciprocity Gap: an explainable comparison between disclosed categories and requested application fields. A possible repost is an inference between two observations; it is never treated as proof that two postings represent one vacancy.
 
+Application analysis also exposes a Resume Re-entry Tax: the count and severity of public employment, education, compensation-history, experience, and current-employer fields requested in addition to a resume.
+
 ## Run locally
 
 Requires Bun.

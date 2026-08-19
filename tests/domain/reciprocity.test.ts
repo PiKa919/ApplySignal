@@ -16,3 +16,17 @@ test("labels high application burden with low disclosure as information asymmetr
   expect(result.gapLabel).toBe("information asymmetry");
   expect(result.explanation).toContain("compensation");
 });
+
+test("calculates a resume re-entry tax from public application fields", () => {
+  const result = analyzeReciprocity({ title: "Engineer", location: "Bengaluru", description: "Build systems" } as any, [
+    { label: "Resume", category: "resume", required: true },
+    { label: "Current employer", category: "identity", required: true },
+    { label: "Employment history", category: "employment_history", required: true },
+    { label: "Education history", category: "education", required: true },
+    { label: "Current CTC", category: "compensation_history", required: true },
+    { label: "Years of experience", category: "experience", required: true },
+  ]);
+
+  expect(result.resumeReentryFieldCount).toBe(5);
+  expect(result.resumeReentryLabel).toBe("high");
+});

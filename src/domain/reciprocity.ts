@@ -14,6 +14,7 @@ export interface ApplicationFieldObservation {
 }
 
 export type ReciprocityGapLabel = "balanced" | "demanding but transparent" | "low information" | "information asymmetry";
+export type ResumeReentryLabel = "not observed" | "none" | "low" | "medium" | "high";
 
 export interface ReciprocityAnalysis {
   disclosedCategories: ReciprocityCategory[];
@@ -21,6 +22,8 @@ export interface ReciprocityAnalysis {
   disclosedCount: number;
   requestedFieldCount: number;
   requiredFieldCount: number;
+  resumeReentryFieldCount: number;
+  resumeReentryLabel: ResumeReentryLabel;
   gapLabel: ReciprocityGapLabel;
   explanation: string;
 }
@@ -46,6 +49,13 @@ export function analyzeReciprocity(job: JobObservation, fields: ApplicationField
   const disclosed = disclosedCategories(job);
   const requested = unique(fields.map((field) => field.category));
   const requiredCount = fields.filter((field) => field.required === true).length;
+  const resumeRequired = fields.some((field) => field.category === "resume");
+  const resumeReentryFieldCount = resumeRequired
+    ? fields.filter((field) => ["employment_history", "education", "compensation_history", "experience"].includes(field.category) || (field.category === "identity" && /current\s+employer/i.test(field.label))).length
+    : 0;
+  const resumeReentryLabel: ResumeReentryLabel = !resumeRequired
+    ? "not observed"
+    : resumeReentryFieldCount >= 5 ? "high" : resumeReentryFieldCount >= 3 ? "medium" : resumeReentryFieldCount >= 1 ? "low" : "none";
   const missingDisclosure = requested.filter((category) => !disclosed.includes(category));
   const burden = fields.length;
   let gapLabel: ReciprocityGapLabel;
@@ -68,6 +78,8 @@ export function analyzeReciprocity(job: JobObservation, fields: ApplicationField
     disclosedCount: disclosed.length,
     requestedFieldCount: burden,
     requiredFieldCount: requiredCount,
+    resumeReentryFieldCount,
+    resumeReentryLabel,
     gapLabel,
     explanation,
   };
