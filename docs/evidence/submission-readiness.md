@@ -35,6 +35,8 @@ The defensible claim is:
 
 It is not defensible to claim that all eight proposed career sites produced healthy live collectors. The source catalog, dashboard, and evidence files preserve that limitation visibly.
 
+The local demo runbook is [`demo-runbook.md`](demo-runbook.md). A public repository URL and demo-video URL are external submission artifacts and are not verified in this workspace; the runbook leaves those checklist items explicitly open.
+
 ## Verification
 
 Latest local verification:

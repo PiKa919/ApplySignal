@@ -89,6 +89,8 @@ When a source has an independent public ATS representation, compare cached scrap
 
 The dashboard deliberately avoids a universal “worth applying” score. An old listing is not automatically fraudulent, a difficult application is not automatically bad, and scraper confidence is not an employer attribute.
 
+The recommended recording path is [`docs/evidence/demo-runbook.md`](docs/evidence/demo-runbook.md). It uses the existing evidence and the credit-free fault-injection demo; it does not imply that unresolved targets have healthy collectors.
+
 ## Structured output
 
 The public application observation contract is illustrated in [`docs/evidence/example-structured-output.json`](docs/evidence/example-structured-output.json). The domain model stores aggregate form metadata and visible labels only; it does not store candidate-entered values. The live Zerodha example is documented in [`docs/evidence/application-observation-2026-08-20.md`](docs/evidence/application-observation-2026-08-20.md).
