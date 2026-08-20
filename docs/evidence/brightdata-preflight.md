@@ -71,7 +71,7 @@ Reachability alone is insufficient to promote BrowserStack or CRED: both still l
 | Palantir Lever fallback | Keep as second live collector | Custom Scraper Studio collector completed; batch run returned 307 public listing rows |
 | Visa | Live scoped detail | One public Workday detail collector completed; full-board generation remains unresolved |
 | Cadence | Live scoped detail | One public Workday detail collector completed; full-board generation remains unresolved |
-| BrowserStack | Unresolved generation | `c_mt0iq7oysxok3r6q4` reached preview picker but did not complete during bounded polling |
+| BrowserStack | Unresolved generation | Existing `c_mt0iq7oysxok3r6q4` reached preview picker; a new bounded scoped attempt `c_mt18102x1tmz2acjx0` also timed out at preview picker |
 | Meesho | Failed generation | Two custom Scraper Studio generation attempts failed; no live data claimed |
 | CRED | Unresolved after bounded detail probe | Authenticated exact-domain library lookup returned no result; one public Lever detail attempt returned zero rows and was quarantined |
 | Postman | Partial validation source | 50 normalized Scraper Studio IDs matched 111 public Greenhouse IDs; extraction remains incomplete |
@@ -95,6 +95,7 @@ Reachability alone is insufficient to promote BrowserStack or CRED: both still l
 | Cadence Workday | `c_mt0il1zsoiz0umxxe` | Generation reached code generation at attempt 181 when bounded polling stopped | Unresolved; no live output claimed |
 | Cadence Workday detail | `c_mt0kbe2b2abejp81k2` | Completed against one public detail page; returned one row with duplicated location/time/date text | Live scoped observation ingested; extraction-quality caveat retained |
 | BrowserStack Workday | `c_mt0iq7oysxok3r6q4` | Generation reached preview picker at attempt 183 when bounded polling stopped | Unresolved; no live output claimed |
+| BrowserStack Workday scoped retry | `c_mt18102x1tmz2acjx0` | New CLI generation with a 20-listing bounded prompt timed out at `preview_picker` on attempt 180/180; no preview, code, or output | Unresolved; no scraper run or approval; half-built collector remains for manual UI cleanup if desired |
 | BrowserStack Workday detail | `c_mt0k5nx71ktmkmh3ul` | Scoped public detail generation remained in schema generation at attempt 182 when bounded polling stopped | Unresolved; no live output claimed |
 | Palantir Lever fallback | `c_mt0ivvftqptif51k9` | Completed; realtime switched to batch after page limit and returned 307 successful rows | Live listing dataset ingested; batch handoff retained as run evidence |
 | Razorpay Greenhouse board (direct) | `c_mt0jo8sc1rqz4ef0pb` | Completed; returned 26 successful rows from the public linked board | Live listing dataset ingested; branded-page routing remains recorded as a separate partial attempt |
