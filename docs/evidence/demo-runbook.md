@@ -42,6 +42,6 @@ The bounded public application collector uses the same preflight boundary; it ne
 These items are intentionally not claimed as completed by the local repository:
 
 - [ ] Public repository URL configured and verified. Current workspace has no Git remote and no matching existing owned repository was found during read-only inspection.
-- [ ] Demo video URL recorded and verified.
-- [ ] Final submission form completed with the bounded source-coverage language from [`submission-readiness.md`](submission-readiness.md).
+- [ ] Demo video URL recorded and verified. The official submission page asks for a working-project demo; show the Bright Data collector workflow, structured output, and downstream dashboard concisely.
+- [ ] Final submission form completed with the bounded source-coverage language from [`submission-readiness.md`](submission-readiness.md). As checked on 2026-08-20, the form is open through August 23, 2026 and asks for the repository, demo video, project description, and how Scraper Studio was used: [official submission form](https://forms.gle/iQf2SjHQViSJaRAv7).
 - [ ] AI assistance disclosure retained in the public README and demo.

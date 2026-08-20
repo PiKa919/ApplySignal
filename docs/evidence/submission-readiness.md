@@ -35,7 +35,7 @@ The defensible claim is:
 
 It is not defensible to claim that all eight proposed career sites produced healthy live collectors. The source catalog, dashboard, and evidence files preserve that limitation visibly.
 
-The local demo runbook is [`demo-runbook.md`](demo-runbook.md). A public repository URL and demo-video URL are external submission artifacts and are not verified in this workspace. Read-only GitHub inspection found no configured Git remote and no matching existing owned repository; publication still requires an explicit repository choice.
+The local demo runbook is [`demo-runbook.md`](demo-runbook.md). The official hackathon page says the submission form is open through August 23, 2026 and requires a repository, demo video, project description, and an explanation of how Scraper Studio was used. A public repository URL and demo-video URL are external submission artifacts and are not verified in this workspace. Read-only GitHub inspection found no configured Git remote and no matching existing owned repository; publication still requires an explicit repository choice.
 
 ## Verification
 
