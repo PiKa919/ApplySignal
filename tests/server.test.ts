@@ -23,6 +23,21 @@ test("production mode excludes fixture observations and adds the persisted emplo
   ]);
 });
 
+test("production summary excludes fixture-backed runs and analysis records", async () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "live-summary-job", sourceId: "zfh", title: "Live Role", location: "Remote", url: "https://careers.zerodhafundhouse.com/jobs/live-summary-job", dataMode: "live", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 0.9 } as any);
+  saveObservation(db, { observationId: "fixture-summary-job", sourceId: "demo-controlled", title: "Fixture Role", location: "Remote", url: "https://fixture.applysignal.test/jobs/fixture-summary-job", dataMode: "fixture", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 0.8 } as any);
+  saveScrapeRun(db, { runId: "fixture-run", collectorId: "fixture", sourceId: "demo-controlled", observedAt: "2026-08-20T00:00:00.000Z", status: "success", rowCount: 1, expectedMinimumRows: 1, rawOutput: "{}" });
+
+  const response = await createAppServer(db, { liveOnly: true }).fetch(new Request("http://local/api/summary"));
+  const summary = await response.json();
+  expect(summary.postings).toHaveLength(1);
+  expect(summary.postings[0].sourceId).toBe("zfh");
+  expect(summary.runs).toEqual([]);
+  expect(summary.analysisSnapshots).toEqual([]);
+  expect(summary.sourceConfidence).toMatchObject([{ observationId: "live-summary-job", dataMode: "live" }]);
+});
+
 test("summary and jobs use persisted analysis snapshots when available", async () => {
   const db = createDatabase(":memory:");
   saveObservation(db, { observationId: "obs-snapshot-api", sourceId: "zfh", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);

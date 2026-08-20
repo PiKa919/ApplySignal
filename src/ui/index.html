@@ -23,6 +23,10 @@
       .health-group-heading { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 10px; color: #c4c7bc; font-size: 13px; }
       .health-group-heading span { color: #a9aa9f; }
       .health-meta { color: #a9aa9f; font-size: 12px; margin-top: 5px; line-height: 1.4; }
+      .dashboard-status { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 22px; padding: 12px 14px; border: 1px solid #343832; border-radius: 10px; color: #c4c7bc; background: rgba(22, 25, 21, .72); font-size: 13px; }
+      .dashboard-status.error { border-color: #7d4e35; color: #ffcfb5; }
+      .dashboard-status button, .inline-retry, #compare-retry { border: 1px solid #d9ff5b; border-radius: 7px; background: #d9ff5b; color: #101210; padding: 7px 11px; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; }
+      .dashboard-status button:hover, .inline-retry:hover, #compare-retry:hover { filter: brightness(1.08); }
       .compare-panel { margin: 0 0 56px; border: 1px solid #343832; border-radius: 16px; padding: 22px; background: rgba(22, 25, 21, .72); }
       .compare-controls { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
       .compare-controls label { color: #a9aa9f; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; }
@@ -51,6 +55,7 @@
         <p class="lede">ApplySignal compares what employers disclose with what their applications demand.</p>
         <div class="legend"><span class="badge unknown">UNKNOWN IS NOT NO</span><span class="badge inferred">INFERENCE ≠ FACT</span><span class="badge live">LIVE OBSERVATIONS ONLY</span></div>
       </header>
+      <div id="dashboard-status" class="dashboard-status" role="status" aria-live="polite">Loading live observations…</div>
       <section id="metrics" class="metrics" aria-label="Signal summary"></section>
       <section class="compare-panel" aria-labelledby="compare-heading">
         <div class="section-heading"><div><p class="eyebrow">COMPARE</p><h2 id="compare-heading">WHERE SHOULD I SPEND 30 MINUTES?</h2></div><span class="muted">independent signals, no aggregate score</span></div>

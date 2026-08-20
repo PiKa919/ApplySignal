@@ -36,20 +36,24 @@ export function createAppServer(db: Database, options: AppServerOptions = {}) {
       if (url.pathname === "/api/summary") {
         const context = createContext();
         const { jobs, snapshots, sourceCatalog, viewJob } = context;
-        const runs = listScrapeRuns(db);
+        const visibleObservationIds = new Set(jobs.map((job) => job.observationId));
+        const visiblePostingIds = new Set(jobs.map((job) => job.postingId).filter((postingId): postingId is string => Boolean(postingId)));
+        const visibleSourceIds = new Set(jobs.map((job) => job.sourceId));
+        const visibleSnapshots = options.liveOnly ? snapshots.filter((snapshot) => visibleObservationIds.has(snapshot.observationId)) : snapshots;
+        const runs = listScrapeRuns(db).filter((run) => !options.liveOnly || visibleSourceIds.has(run.sourceId));
         const lastKnownGood = [...new Map(runs
           .filter((run) => run.status === "success" && run.healthStatus === "healthy")
           .map((run) => [`${run.sourceId}:${run.runKind}`, run])).values()];
         return json({
           sourceCatalog,
-          postings: listPostings(db),
+          postings: options.liveOnly ? listPostings(db).filter((posting) => visiblePostingIds.has(posting.postingId)) : listPostings(db),
           runs,
           lastKnownGood,
           healEvents: listHealEvents(db),
           validationResults: listValidationResults(db),
           postingEvents: listPostingEvents(db),
           lineageEdges: listLineageEdges(db),
-          analysisSnapshots: snapshots,
+          analysisSnapshots: visibleSnapshots,
           sourceConfidence: jobs.map((job) => ({ observationId: job.observationId, sourceId: job.sourceId, confidence: job.sourceConfidence, dataMode: job.dataMode })),
           analyses: jobs.map((job) => ({ observationId: job.observationId, companyName: viewJob(job).companyName, ...context.analysisFor(job) })),
         });
