@@ -343,6 +343,16 @@ export function saveHealEvent(db: Database, event: Omit<HealEventRecord, "eventI
     );
 }
 
+export function markLatestHealEvent(db: Database, input: { sourceId: string; collectorId: string; failedRunId: string; approved: boolean; repairedRunId: string | null }): boolean {
+  const result = db.query(`UPDATE heal_events SET approved = ?, repaired_run_id = ?
+    WHERE event_id = (
+      SELECT event_id FROM heal_events
+      WHERE source_id = ? AND collector_id = ? AND failed_run_id = ?
+      ORDER BY event_id DESC LIMIT 1
+    )`).run(Number(input.approved), input.repairedRunId, input.sourceId, input.collectorId, input.failedRunId);
+  return result.changes > 0;
+}
+
 export function listHealEvents(db: Database): HealEventRecord[] {
   const rows = db.query(`SELECT event_id as eventId, source_id as sourceId, collector_id as collectorId,
     failed_run_id as failedRunId, reason, generated_prompt as generatedPrompt,

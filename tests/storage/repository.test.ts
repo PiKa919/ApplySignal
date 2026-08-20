@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDatabase } from "../../src/storage/database";
-import { listAnalysisSnapshots, listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
+import { listAnalysisSnapshots, listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, markLatestHealEvent, saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
 
 test("round-trips observations without collapsing unknown fields", () => {
   const db = createDatabase(":memory:");
@@ -133,4 +133,21 @@ test("round-trips review-gated heal evidence separately from scrape runs", () =>
     approved: null,
     previewHealth: { recordCount: 10 },
   }]);
+});
+
+test("marks the latest matching heal event only after explicit approval", () => {
+  const db = createDatabase(":memory:");
+  saveHealEvent(db, {
+    sourceId: "visa",
+    collectorId: "c_test",
+    failedRunId: "run-bad",
+    reason: "location drift",
+    generatedPrompt: "Restore location",
+    previewResult: { status: "awaiting_approval" },
+    previewHealth: null,
+    approved: null,
+    repairedRunId: null,
+  });
+  expect(markLatestHealEvent(db, { sourceId: "visa", collectorId: "c_test", failedRunId: "run-bad", approved: true, repairedRunId: null })).toBe(true);
+  expect(listHealEvents(db)[0]).toMatchObject({ approved: true, repairedRunId: null });
 });

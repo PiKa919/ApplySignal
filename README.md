@@ -102,6 +102,8 @@ Bright Data run → transport/structural/semantic health gate
 
 `buildHealDiagnosis` generates a field-specific prompt from observed drift but never invokes `brightdata scraper heal`, approves a preview, or reruns a paid job automatically. The current evidence is in [`docs/evidence/health-contract.md`](docs/evidence/health-contract.md) and [`docs/evidence/heal-diagnosis.md`](docs/evidence/heal-diagnosis.md).
 
+The explicit review-gated bridge is `bun run heal:collector`: preview mode calls Bright Data heal without auto-approval or auto-save and records `approved: null`; approval requires `APPLYSIGNAL_APPROVE_HEAL=true`. The repaired collector is rerun separately through the normal cooldown/health-gated collector path.
+
 The credit-free fault-injection demo can be reproduced with `bun run demo:health`. It uses the controlled fixture, removes rows and a location field, then writes `artifacts/applysignal-health-demo.json`. The artifact shows the healthy baseline, quarantined current run, retained last-known-good decision, field-specific review prompt, `approvalRequired: true`, `brokenRunCommitted: false`, and `brightDataCalls: 0`. It does not contact Bright Data.
 
 ## Edge cases and limitations
