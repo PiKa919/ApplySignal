@@ -40,7 +40,7 @@ It is not defensible to claim that all eight proposed career sites produced heal
 Latest local verification:
 
 ```text
-123 tests passed, 0 failed
+125 tests passed, 0 failed
 bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
 bun build src/cli/run-collector.ts --target bun --outdir /tmp/applysignal-run-build
 git diff --check
@@ -55,4 +55,4 @@ GET /api/summary -> 200 (9 catalog sources, 11 runs, 1 validation result, 404 sn
 GET /api/jobs    -> 200 (404 jobs)
 ```
 
-The existing SQLite database now opens with 9 persisted source records and an empty lineage-edge table; no historical repost inference rows were present to migrate.
+The existing SQLite database now opens with 9 persisted source records, 401 posting records linked to 404 observations, and an empty lineage-edge table; no historical repost inference rows were present to migrate.

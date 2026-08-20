@@ -214,10 +214,12 @@ test("summary endpoint exposes source catalog states without treating them as ob
 test("summary serves persisted source metadata and lineage edges", async () => {
   const db = createDatabase(":memory:");
   db.query("UPDATE sources SET note = ? WHERE source_id = ?").run("persisted source note", "zfh");
+  saveObservation(db, { observationId: "obs-new", sourceId: "zfh", sourceJobId: "REQ-1", url: "https://example.test/jobs/1" } as any);
   saveInference(db, { type: "possible_repost", confidence: 0.9, signals: ["title"], observationIds: ["old", "new"] });
   const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
   expect(await response.json()).toMatchObject({
     sourceCatalog: expect.arrayContaining([expect.objectContaining({ sourceId: "zfh", note: "persisted source note" })]),
+    postings: [expect.objectContaining({ postingId: "zfh::REQ-1", sourcePostingKey: "REQ-1" })],
     lineageEdges: [expect.objectContaining({ fromObservationId: "old", toObservationId: "new", algorithmVersion: "repost-v1" })],
   });
 });

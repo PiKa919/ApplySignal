@@ -33,6 +33,7 @@ export interface NormalizationContext {
 
 export interface JobObservation {
   observationId: string;
+  postingId?: string;
   sourceId: string;
   sourceUrl: string;
   observedAt: string;

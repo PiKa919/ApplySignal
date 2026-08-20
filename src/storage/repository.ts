@@ -16,6 +16,27 @@ export function listSources(db: Database): SourceCatalogEntry[] {
   return rows.map((row) => ({ ...row, scope: JSON.parse(row.scope) } as SourceCatalogEntry));
 }
 
+export interface PostingRecord {
+  postingId: string;
+  sourceId: string;
+  sourcePostingKey: string;
+  canonicalUrl: string | null;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  currentState: string;
+}
+
+export function listPostings(db: Database, sourceId?: string): PostingRecord[] {
+  const rows = sourceId
+    ? db.query(`SELECT posting_id as postingId, source_id as sourceId, source_posting_key as sourcePostingKey,
+        canonical_url as canonicalUrl, first_seen_at as firstSeenAt, last_seen_at as lastSeenAt, current_state as currentState
+        FROM postings WHERE source_id = ? ORDER BY last_seen_at DESC`).all(sourceId)
+    : db.query(`SELECT posting_id as postingId, source_id as sourceId, source_posting_key as sourcePostingKey,
+        canonical_url as canonicalUrl, first_seen_at as firstSeenAt, last_seen_at as lastSeenAt, current_state as currentState
+        FROM postings ORDER BY last_seen_at DESC`).all();
+  return rows as PostingRecord[];
+}
+
 export interface ScrapeRunRecord {
   runId: string;
   collectorId: string;
@@ -59,13 +80,24 @@ export function listScrapeRuns(db: Database): ScrapeRunHealth[] {
 }
 
 export function saveObservation(db: Database, observation: JobObservation & { dataMode?: "live" | "fixture" }): void {
+  const sourcePostingKey = observation.sourceJobId ?? observation.url ?? observation.observationId;
+  const postingId = observation.postingId ?? `${observation.sourceId}::${sourcePostingKey}`;
+  db.query(`INSERT INTO postings
+    (posting_id, source_id, source_posting_key, canonical_url, first_seen_at, last_seen_at, current_state)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source_id, source_posting_key) DO UPDATE SET
+      canonical_url = COALESCE(excluded.canonical_url, postings.canonical_url),
+      last_seen_at = CASE WHEN postings.last_seen_at > excluded.last_seen_at THEN postings.last_seen_at ELSE excluded.last_seen_at END,
+      current_state = excluded.current_state`)
+    .run(postingId, observation.sourceId, sourcePostingKey, observation.url ?? null, observation.observedAt ?? new Date().toISOString(), observation.observedAt ?? new Date().toISOString(), "observed");
   const statement = db.query(`INSERT OR REPLACE INTO job_observations
-    (observation_id, source_id, source_url, observed_at, source_job_id, title, location, employment_type,
+    (observation_id, posting_id, source_id, source_url, observed_at, source_job_id, title, location, employment_type,
      posted_date, posted_date_quality, closing_date, closing_date_quality, description, salary, application_url,
      url, provenance_json, source_confidence, flags_json, data_mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   statement.run(
     observation.observationId,
+    postingId,
     observation.sourceId,
     observation.sourceUrl ?? null,
     observation.observedAt ?? new Date().toISOString(),
@@ -90,6 +122,7 @@ export function saveObservation(db: Database, observation: JobObservation & { da
 
 interface ObservationRow {
   observation_id: string;
+  posting_id: string | null;
   source_id: string;
   source_url: string | null;
   observed_at: string;
@@ -116,6 +149,7 @@ const hydrate = (row: ObservationRow): JobObservation & { dataMode: "live" | "fi
   const derivedFlags = classifyPostingFlags(row.title, row.description);
   return {
   observationId: row.observation_id,
+  postingId: row.posting_id ?? undefined,
   sourceId: row.source_id,
   sourceUrl: row.source_url ?? "",
   observedAt: row.observed_at,

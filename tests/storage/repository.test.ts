@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDatabase } from "../../src/storage/database";
-import { listAnalysisSnapshots, listApplicationObservation, listHealEvents, listLatestObservations, listLineageEdges, listPostingEvents, listScrapeRuns, listSources, markLatestHealEvent, saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, saveInference, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
+import { listAnalysisSnapshots, listApplicationObservation, listHealEvents, listLatestObservations, listLineageEdges, listPostings, listPostingEvents, listScrapeRuns, listSources, markLatestHealEvent, saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, saveInference, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
 
 test("round-trips observations without collapsing unknown fields", () => {
   const db = createDatabase(":memory:");
@@ -176,4 +176,35 @@ test("persists repost inference as an explicit lineage edge", () => {
     evidence: { signals: ["normalized title matches", "normalized location matches"] },
     algorithmVersion: "repost-v1",
   }]);
+});
+
+test("links lifecycle observations to one stable posting record", () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-old", sourceId: "zfh", sourceJobId: "REQ-1", url: "https://example.test/jobs/old", observedAt: "2026-08-19T00:00:00.000Z" } as any);
+  saveObservation(db, { observationId: "obs-new", sourceId: "zfh", sourceJobId: "REQ-1", url: "https://example.test/jobs/new", observedAt: "2026-08-20T00:00:00.000Z" } as any);
+  expect(listPostings(db)).toMatchObject([{
+    postingId: "zfh::REQ-1",
+    sourceId: "zfh",
+    sourcePostingKey: "REQ-1",
+    canonicalUrl: "https://example.test/jobs/new",
+    firstSeenAt: "2026-08-19T00:00:00.000Z",
+    lastSeenAt: "2026-08-20T00:00:00.000Z",
+  }]);
+  expect(listLatestObservations(db, "zfh").map((observation) => observation.postingId)).toEqual(["zfh::REQ-1", "zfh::REQ-1"]);
+});
+
+test("backfills posting records when an older database is reopened", async () => {
+  const root = await mkdtemp(join(tmpdir(), "applysignal-posting-migration-"));
+  const path = join(root, "applysignal.db");
+  const first = createDatabase(path);
+  saveObservation(first, { observationId: "obs-old", sourceId: "zfh", sourceJobId: "REQ-MIGRATE", url: "https://example.test/jobs/migrate", observedAt: "2026-08-20T00:00:00.000Z" } as any);
+  first.exec("DELETE FROM postings");
+  first.exec("UPDATE job_observations SET posting_id = NULL");
+  first.close();
+
+  const reopened = createDatabase(path);
+  expect(listPostings(reopened)).toMatchObject([expect.objectContaining({ postingId: "zfh::REQ-MIGRATE", sourcePostingKey: "REQ-MIGRATE" })]);
+  expect(listLatestObservations(reopened, "zfh")[0].postingId).toBe("zfh::REQ-MIGRATE");
+  reopened.close();
+  await rm(root, { recursive: true, force: true });
 });

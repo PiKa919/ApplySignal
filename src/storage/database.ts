@@ -16,6 +16,17 @@ CREATE TABLE IF NOT EXISTS sources (
   note TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS postings (
+  posting_id TEXT PRIMARY KEY,
+  source_id TEXT NOT NULL,
+  source_posting_key TEXT NOT NULL,
+  canonical_url TEXT,
+  first_seen_at TEXT NOT NULL,
+  last_seen_at TEXT NOT NULL,
+  current_state TEXT NOT NULL DEFAULT 'observed',
+  UNIQUE(source_id, source_posting_key)
+);
+
 CREATE TABLE IF NOT EXISTS scrape_runs (
   run_id TEXT PRIMARY KEY,
   collector_id TEXT NOT NULL,
@@ -33,6 +44,7 @@ CREATE TABLE IF NOT EXISTS scrape_runs (
 
 CREATE TABLE IF NOT EXISTS job_observations (
   observation_id TEXT PRIMARY KEY,
+  posting_id TEXT,
   source_id TEXT NOT NULL,
   source_url TEXT,
   observed_at TEXT NOT NULL,
@@ -143,6 +155,32 @@ CREATE TABLE IF NOT EXISTS heal_events (
 );
 `;
 
+function backfillPostings(db: Database): void {
+  const rows = db.query(`SELECT observation_id, posting_id, source_id, source_job_id, url, observed_at
+    FROM job_observations`).all() as Array<{
+      observation_id: string;
+      posting_id: string | null;
+      source_id: string;
+      source_job_id: string | null;
+      url: string | null;
+      observed_at: string;
+    }>;
+  const insert = db.query(`INSERT INTO postings
+    (posting_id, source_id, source_posting_key, canonical_url, first_seen_at, last_seen_at, current_state)
+    VALUES (?, ?, ?, ?, ?, ?, 'observed')
+    ON CONFLICT(source_id, source_posting_key) DO UPDATE SET
+      canonical_url = COALESCE(excluded.canonical_url, postings.canonical_url),
+      first_seen_at = CASE WHEN postings.first_seen_at < excluded.first_seen_at THEN postings.first_seen_at ELSE excluded.first_seen_at END,
+      last_seen_at = CASE WHEN postings.last_seen_at > excluded.last_seen_at THEN postings.last_seen_at ELSE excluded.last_seen_at END`);
+  const update = db.query("UPDATE job_observations SET posting_id = ? WHERE observation_id = ?");
+  for (const row of rows) {
+    const sourcePostingKey = row.source_job_id ?? row.url ?? row.observation_id;
+    const postingId = row.posting_id ?? `${row.source_id}::${sourcePostingKey}`;
+    insert.run(postingId, row.source_id, sourcePostingKey, row.url, row.observed_at, row.observed_at);
+    if (row.posting_id !== postingId) update.run(postingId, row.observation_id);
+  }
+}
+
 export function createDatabase(path: string): Database {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
@@ -164,11 +202,13 @@ export function createDatabase(path: string): Database {
     "ALTER TABLE scrape_runs ADD COLUMN health_status TEXT NOT NULL DEFAULT 'healthy'",
     "ALTER TABLE scrape_runs ADD COLUMN health_report TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE job_observations ADD COLUMN flags_json TEXT NOT NULL DEFAULT '{}'",
+    "ALTER TABLE job_observations ADD COLUMN posting_id TEXT",
     "ALTER TABLE scrape_runs ADD COLUMN run_kind TEXT NOT NULL DEFAULT 'listing'",
   ]) {
     try { db.exec(statement); } catch (error) {
       if (!String(error).includes("duplicate column name")) throw error;
     }
   }
+  backfillPostings(db);
   return db;
 }

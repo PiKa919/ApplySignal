@@ -1,6 +1,6 @@
 import { buildObservationAnalysis } from "./domain/analysis";
 import { diffObservations, inferPostingRelationship } from "./domain/lifecycle";
-import { listAnalysisSnapshots, listApplicationFields, listApplicationObservation, listHealEvents, listLatestObservations, listLineageEdges, listPostingEvents, listScrapeRuns, listSources, listValidationResults } from "./storage/repository";
+import { listAnalysisSnapshots, listApplicationFields, listApplicationObservation, listHealEvents, listLatestObservations, listLineageEdges, listPostings, listPostingEvents, listScrapeRuns, listSources, listValidationResults } from "./storage/repository";
 import type { Database } from "bun:sqlite";
 
 const json = (value: unknown, status = 200): Response => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -34,6 +34,7 @@ export function createAppServer(db: Database) {
           .map((run) => [`${run.sourceId}:${run.runKind}`, run])).values()];
         return json({
           sourceCatalog: listSources(db),
+          postings: listPostings(db),
           runs,
           lastKnownGood,
           healEvents: listHealEvents(db),
