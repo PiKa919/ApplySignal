@@ -31,6 +31,9 @@ jobs:
           bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
           bun build src/cli/run-collector.ts --target bun --outdir /tmp/applysignal-collector-build
 
+      - name: Build hosted Docker image
+        run: docker build --tag applysignal:ci .
+
       - name: Run credit-free health demo
         run: bun run demo:health
 
