@@ -14,3 +14,12 @@ test("auditDatabase reports observations and source scope without collecting", (
   expect(result.partialSources).toContain("postman");
   db.close();
 });
+
+test("auditDatabase reads source scope from persisted registry metadata", () => {
+  const db = createDatabase(":memory:");
+  db.query("UPDATE sources SET status = ?, source_family = ?, collector_id = ? WHERE source_id = ?").run("unresolved", "workday", "c_registry", "zfh");
+  const result = auditDatabase(db);
+  expect(result.activeSources).not.toContain("zfh");
+  expect(result.unresolvedSources).toContain("zfh");
+  db.close();
+});

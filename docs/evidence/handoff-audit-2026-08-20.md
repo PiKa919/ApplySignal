@@ -46,7 +46,7 @@ bun test
 bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
 ```
 
-Latest local verification: 126 tests passed and the Bun builds completed successfully. The runtime smoke served `/`, `/app.js`, `/api/summary`, `/api/jobs`, `/api/jobs/:observationId`, and `/api/compare` successfully against the existing SQLite database. The controlled fault-injection demo reports `approvalRequired: true`, `brokenRunCommitted: false`, and `brightDataCalls: 0`.
+Latest local verification: 127 tests passed and the Bun builds completed successfully. The runtime smoke served `/`, `/app.js`, `/api/summary`, `/api/jobs`, `/api/jobs/:observationId`, and `/api/compare` successfully against the existing SQLite database. The controlled fault-injection demo reports `approvalRequired: true`, `brokenRunCommitted: false`, and `brightDataCalls: 0`.
 
 ## Remaining plan gap
 

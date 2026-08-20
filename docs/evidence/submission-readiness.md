@@ -40,7 +40,7 @@ It is not defensible to claim that all eight proposed career sites produced heal
 Latest local verification:
 
 ```text
-126 tests passed, 0 failed
+127 tests passed, 0 failed
 bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
 bun build src/cli/run-collector.ts --target bun --outdir /tmp/applysignal-run-build
 git diff --check
