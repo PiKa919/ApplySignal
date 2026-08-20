@@ -1,7 +1,6 @@
 import { buildObservationAnalysis } from "./domain/analysis";
 import { diffObservations, inferPostingRelationship } from "./domain/lifecycle";
-import { SOURCE_CATALOG } from "./domain/source-catalog";
-import { listAnalysisSnapshots, listApplicationFields, listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, listValidationResults } from "./storage/repository";
+import { listAnalysisSnapshots, listApplicationFields, listApplicationObservation, listHealEvents, listLatestObservations, listLineageEdges, listPostingEvents, listScrapeRuns, listSources, listValidationResults } from "./storage/repository";
 import type { Database } from "bun:sqlite";
 
 const json = (value: unknown, status = 200): Response => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -34,12 +33,13 @@ export function createAppServer(db: Database) {
           .filter((run) => run.status === "success" && run.healthStatus === "healthy")
           .map((run) => [`${run.sourceId}:${run.runKind}`, run])).values()];
         return json({
-          sourceCatalog: SOURCE_CATALOG,
+          sourceCatalog: listSources(db),
           runs,
           lastKnownGood,
           healEvents: listHealEvents(db),
           validationResults: listValidationResults(db),
           postingEvents: listPostingEvents(db),
+          lineageEdges: listLineageEdges(db),
           analysisSnapshots: snapshots,
           sourceConfidence: jobs.map((job) => ({ observationId: job.observationId, sourceId: job.sourceId, confidence: job.sourceConfidence, dataMode: job.dataMode })),
           analyses: jobs.map((job) => ({ observationId: job.observationId, ...context.analysisFor(job) })),

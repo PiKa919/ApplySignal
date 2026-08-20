@@ -1,9 +1,20 @@
 import { Database } from "bun:sqlite";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { SOURCE_CATALOG } from "../domain/source-catalog";
 
 const schema = `
 PRAGMA foreign_keys = ON;
+
+CREATE TABLE IF NOT EXISTS sources (
+  source_id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  url TEXT NOT NULL,
+  status TEXT NOT NULL,
+  role TEXT NOT NULL,
+  scope_json TEXT NOT NULL,
+  note TEXT NOT NULL
+);
 
 CREATE TABLE IF NOT EXISTS scrape_runs (
   run_id TEXT PRIMARY KEY,
@@ -83,6 +94,16 @@ CREATE TABLE IF NOT EXISTS posting_inferences (
   observation_ids_json TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS lineage_edges (
+  edge_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_observation_id TEXT NOT NULL,
+  to_observation_id TEXT NOT NULL,
+  relation TEXT NOT NULL,
+  confidence REAL NOT NULL,
+  evidence_json TEXT NOT NULL,
+  algorithm_version TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS posting_events (
   event_id INTEGER PRIMARY KEY AUTOINCREMENT,
   source_id TEXT NOT NULL,
@@ -126,6 +147,19 @@ export function createDatabase(path: string): Database {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
   db.exec(schema);
+  const sourceStatement = db.query(`INSERT INTO sources
+    (source_id, name, url, status, role, scope_json, note)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source_id) DO UPDATE SET
+      name = excluded.name,
+      url = excluded.url,
+      status = excluded.status,
+      role = excluded.role,
+      scope_json = excluded.scope_json,
+      note = excluded.note`);
+  for (const source of SOURCE_CATALOG) {
+    sourceStatement.run(source.sourceId, source.name, source.url, source.status, source.role, JSON.stringify(source.scope), source.note);
+  }
   for (const statement of [
     "ALTER TABLE scrape_runs ADD COLUMN health_status TEXT NOT NULL DEFAULT 'healthy'",
     "ALTER TABLE scrape_runs ADD COLUMN health_report TEXT NOT NULL DEFAULT '{}'",

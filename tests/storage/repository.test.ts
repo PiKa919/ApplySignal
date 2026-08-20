@@ -3,7 +3,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createDatabase } from "../../src/storage/database";
-import { listAnalysisSnapshots, listApplicationObservation, listHealEvents, listLatestObservations, listPostingEvents, listScrapeRuns, markLatestHealEvent, saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
+import { listAnalysisSnapshots, listApplicationObservation, listHealEvents, listLatestObservations, listLineageEdges, listPostingEvents, listScrapeRuns, listSources, markLatestHealEvent, saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, saveInference, saveObservation, savePostingEvent, saveScrapeRun } from "../../src/storage/repository";
 
 test("round-trips observations without collapsing unknown fields", () => {
   const db = createDatabase(":memory:");
@@ -150,4 +150,30 @@ test("marks the latest matching heal event only after explicit approval", () => 
   });
   expect(markLatestHealEvent(db, { sourceId: "visa", collectorId: "c_test", failedRunId: "run-bad", approved: true, repairedRunId: null })).toBe(true);
   expect(listHealEvents(db)[0]).toMatchObject({ approved: true, repairedRunId: null });
+});
+
+test("persists the source catalog independently from observations", () => {
+  const db = createDatabase(":memory:");
+  expect(listSources(db)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ sourceId: "zfh", status: "live" }),
+    expect.objectContaining({ sourceId: "browserstack", status: "unresolved" }),
+  ]));
+});
+
+test("persists repost inference as an explicit lineage edge", () => {
+  const db = createDatabase(":memory:");
+  saveInference(db, {
+    type: "possible_repost",
+    confidence: 0.94,
+    signals: ["normalized title matches", "normalized location matches"],
+    observationIds: ["obs-old", "obs-new"],
+  });
+  expect(listLineageEdges(db)).toMatchObject([{
+    fromObservationId: "obs-old",
+    toObservationId: "obs-new",
+    relation: "possible_repost",
+    confidence: 0.94,
+    evidence: { signals: ["normalized title matches", "normalized location matches"] },
+    algorithmVersion: "repost-v1",
+  }]);
 });

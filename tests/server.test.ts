@@ -4,7 +4,7 @@ import { createAppServer } from "../src/server";
 import { saveScrapeRun } from "../src/storage/repository";
 import { saveObservation } from "../src/storage/repository";
 import { saveValidationResult } from "../src/storage/repository";
-import { saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, savePostingEvent } from "../src/storage/repository";
+import { saveAnalysisSnapshot, saveApplicationObservation, saveHealEvent, saveInference, savePostingEvent } from "../src/storage/repository";
 
 test("summary endpoint exposes source confidence separately from job analysis", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/api/summary"));
@@ -209,6 +209,17 @@ test("summary endpoint exposes source catalog states without treating them as ob
     expect.objectContaining({ sourceId: "zfh", status: "live", scope: expect.objectContaining({ boardKind: "all_jobs" }) }),
     expect.objectContaining({ sourceId: "visa", status: "live_scoped", scope: expect.objectContaining({ boardKind: "subset" }) }),
   ]));
+});
+
+test("summary serves persisted source metadata and lineage edges", async () => {
+  const db = createDatabase(":memory:");
+  db.query("UPDATE sources SET note = ? WHERE source_id = ?").run("persisted source note", "zfh");
+  saveInference(db, { type: "possible_repost", confidence: 0.9, signals: ["title"], observationIds: ["old", "new"] });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
+  expect(await response.json()).toMatchObject({
+    sourceCatalog: expect.arrayContaining([expect.objectContaining({ sourceId: "zfh", note: "persisted source note" })]),
+    lineageEdges: [expect.objectContaining({ fromObservationId: "old", toObservationId: "new", algorithmVersion: "repost-v1" })],
+  });
 });
 
 test("job detail keeps a possible repost as an inference separate from field diffs", async () => {

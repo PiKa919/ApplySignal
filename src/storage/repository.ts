@@ -3,10 +3,18 @@ import type { JobObservation } from "../domain/observations";
 import type { ApplicationFieldObservation } from "../domain/reciprocity";
 import type { ApplicationObservationSummary } from "../domain/application";
 import type { LifecycleState, PostingInference } from "../domain/lifecycle";
+import type { SourceCatalogEntry } from "../domain/source-catalog";
 import type { JobIdComparison } from "../domain/validation";
 import { classifyPostingFlags } from "../domain/normalize";
 
 const DEFAULT_FLAGS = { explicitEvergreen: false, evergreenLike: false, talentPool: false, multipleOpenings: false } as const;
+const LINEAGE_ALGORITHM_VERSION = "repost-v1";
+
+export function listSources(db: Database): SourceCatalogEntry[] {
+  const rows = db.query(`SELECT source_id as sourceId, name, url, status, role, scope_json as scope, note
+    FROM sources ORDER BY source_id`).all() as Array<Omit<SourceCatalogEntry, "scope"> & { scope: string }>;
+  return rows.map((row) => ({ ...row, scope: JSON.parse(row.scope) } as SourceCatalogEntry));
+}
 
 export interface ScrapeRunRecord {
   runId: string;
@@ -232,6 +240,28 @@ export function listAnalysisSnapshots(db: Database, observationId?: string): Ana
 export function saveInference(db: Database, inference: PostingInference): void {
   db.query("INSERT INTO posting_inferences (type, confidence, signals_json, observation_ids_json) VALUES (?, ?, ?, ?)")
     .run(inference.type, inference.confidence, JSON.stringify(inference.signals), JSON.stringify(inference.observationIds));
+  db.query(`INSERT INTO lineage_edges
+    (from_observation_id, to_observation_id, relation, confidence, evidence_json, algorithm_version)
+    VALUES (?, ?, ?, ?, ?, ?)`)
+    .run(inference.observationIds[0], inference.observationIds[1], inference.type, inference.confidence, JSON.stringify({ signals: inference.signals }), LINEAGE_ALGORITHM_VERSION);
+}
+
+export interface LineageEdgeRecord {
+  edgeId: number;
+  fromObservationId: string;
+  toObservationId: string;
+  relation: string;
+  confidence: number;
+  evidence: Record<string, unknown>;
+  algorithmVersion: string;
+}
+
+export function listLineageEdges(db: Database): LineageEdgeRecord[] {
+  const rows = db.query(`SELECT edge_id as edgeId, from_observation_id as fromObservationId,
+    to_observation_id as toObservationId, relation, confidence, evidence_json as evidence,
+    algorithm_version as algorithmVersion
+    FROM lineage_edges ORDER BY edge_id DESC`).all() as Array<LineageEdgeRecord & { evidence: string }>;
+  return rows.map((row) => ({ ...row, evidence: JSON.parse(row.evidence) }));
 }
 
 export interface PostingEventRecord {

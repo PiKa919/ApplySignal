@@ -6,14 +6,14 @@ This audit maps the original ApplySignal plan to current repository and Bright D
 
 | Gate | Requirement | Current evidence | Status |
 | --- | --- | --- | --- |
-| 1 | Data contract, source scope, and health report | `src/domain/observations.ts`, `src/collectors/health.ts`, `src/domain/source-catalog.ts`; normalization and health tests | Complete |
+| 1 | Data contract, source scope, and health report | `src/domain/observations.ts`, `src/collectors/health.ts`, persisted `sources` table, and `src/domain/source-catalog.ts`; normalization and health tests | Complete |
 | 2 | One hard real scraper from listing/detail to normalized output | Visa and Cadence public Workday detail collectors; one normalized live observation each | Complete as scoped detail; full-board coverage not claimed |
 | 3 | Run, validate, quarantine, diagnose, heal, approve, rerun | Controlled fault-injection artifact plus authenticated Zerodha self-healing evidence in `live-run-2026-08-20.md` | Complete |
 | 4 | Remaining hard sources | Zerodha board live; Visa/Cadence scoped; BrowserStack bounded attempts unresolved; Meesho generation failed | Partial, explicitly bounded |
 | 5 | Oracle/validation sources | Postman 50/111 ID comparison persisted as `mismatch`; Razorpay 26-row live Greenhouse source; CRED unresolved | Partial, with measured mismatch |
 | 6 | Append-only observation history and lifecycle events | `posting_events`, lifecycle fixtures, persisted event/API/UI tests | Complete |
 | 7 | Application burden and Reciprocity Gap | Zerodha public application metadata, transparency score, resume re-entry tax, and separate signal dimensions | Complete |
-| 8 | Conservative lineage/repost inference | `inferPostingRelationship`, persisted inference evidence, and separate UI labeling | Complete |
+| 8 | Conservative lineage/repost inference | `inferPostingRelationship`, `lineage_edges` with `repost-v1`, persisted inference evidence, and separate UI labeling | Complete |
 | 9 | Explorer, Compare, Job Evidence, and Source Health screens | `src/server.ts`, `src/ui/`, API/UI regression tests | Complete |
 | 10 | Controlled fault injection | `bun run demo:health`; `approvalRequired: true`, `brokenRunCommitted: false`, `brightDataCalls: 0` | Complete |
 
@@ -40,7 +40,7 @@ It is not defensible to claim that all eight proposed career sites produced heal
 Latest local verification:
 
 ```text
-120 tests passed, 0 failed
+123 tests passed, 0 failed
 bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
 bun build src/cli/run-collector.ts --target bun --outdir /tmp/applysignal-run-build
 git diff --check
@@ -54,3 +54,5 @@ GET /app.js     -> 200 (14,906 bytes)
 GET /api/summary -> 200 (9 catalog sources, 11 runs, 1 validation result, 404 snapshots)
 GET /api/jobs    -> 200 (404 jobs)
 ```
+
+The existing SQLite database now opens with 9 persisted source records and an empty lineage-edge table; no historical repost inference rows were present to migrate.
