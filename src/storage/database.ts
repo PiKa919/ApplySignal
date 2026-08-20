@@ -77,6 +77,7 @@ CREATE TABLE IF NOT EXISTS application_fields (
 
 CREATE TABLE IF NOT EXISTS application_observations (
   observation_id TEXT PRIMARY KEY REFERENCES job_observations(observation_id) ON DELETE CASCADE,
+  posting_id TEXT,
   account_gate INTEGER,
   resume_required INTEGER,
   required_field_count INTEGER NOT NULL,
@@ -92,6 +93,7 @@ CREATE TABLE IF NOT EXISTS application_observations (
 CREATE TABLE IF NOT EXISTS analysis_snapshots (
   snapshot_id TEXT PRIMARY KEY,
   observation_id TEXT NOT NULL REFERENCES job_observations(observation_id) ON DELETE CASCADE,
+  posting_id TEXT,
   analysis_version TEXT NOT NULL,
   generated_at TEXT NOT NULL,
   analysis_json TEXT NOT NULL,
@@ -108,6 +110,8 @@ CREATE TABLE IF NOT EXISTS posting_inferences (
 
 CREATE TABLE IF NOT EXISTS lineage_edges (
   edge_id INTEGER PRIMARY KEY AUTOINCREMENT,
+  from_posting_id TEXT,
+  to_posting_id TEXT,
   from_observation_id TEXT NOT NULL,
   to_observation_id TEXT NOT NULL,
   relation TEXT NOT NULL,
@@ -119,6 +123,9 @@ CREATE TABLE IF NOT EXISTS lineage_edges (
 CREATE TABLE IF NOT EXISTS posting_events (
   event_id INTEGER PRIMARY KEY AUTOINCREMENT,
   source_id TEXT NOT NULL,
+  posting_id TEXT,
+  before_posting_id TEXT,
+  after_posting_id TEXT,
   event_type TEXT NOT NULL,
   before_observation_id TEXT,
   after_observation_id TEXT NOT NULL,
@@ -181,6 +188,24 @@ function backfillPostings(db: Database): void {
   }
 }
 
+function backfillStableRelationshipIds(db: Database): void {
+  db.exec(`UPDATE application_observations
+    SET posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = application_observations.observation_id)
+    WHERE posting_id IS NULL`);
+  db.exec(`UPDATE analysis_snapshots
+    SET posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = analysis_snapshots.observation_id)
+    WHERE posting_id IS NULL`);
+  db.exec(`UPDATE lineage_edges
+    SET from_posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = lineage_edges.from_observation_id),
+        to_posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = lineage_edges.to_observation_id)
+    WHERE from_posting_id IS NULL OR to_posting_id IS NULL`);
+  db.exec(`UPDATE posting_events
+    SET posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = posting_events.after_observation_id),
+        before_posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = posting_events.before_observation_id),
+        after_posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = posting_events.after_observation_id)
+    WHERE posting_id IS NULL OR after_posting_id IS NULL`);
+}
+
 export function createDatabase(path: string): Database {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
@@ -204,11 +229,19 @@ export function createDatabase(path: string): Database {
     "ALTER TABLE job_observations ADD COLUMN flags_json TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE job_observations ADD COLUMN posting_id TEXT",
     "ALTER TABLE scrape_runs ADD COLUMN run_kind TEXT NOT NULL DEFAULT 'listing'",
+    "ALTER TABLE application_observations ADD COLUMN posting_id TEXT",
+    "ALTER TABLE analysis_snapshots ADD COLUMN posting_id TEXT",
+    "ALTER TABLE lineage_edges ADD COLUMN from_posting_id TEXT",
+    "ALTER TABLE lineage_edges ADD COLUMN to_posting_id TEXT",
+    "ALTER TABLE posting_events ADD COLUMN posting_id TEXT",
+    "ALTER TABLE posting_events ADD COLUMN before_posting_id TEXT",
+    "ALTER TABLE posting_events ADD COLUMN after_posting_id TEXT",
   ]) {
     try { db.exec(statement); } catch (error) {
       if (!String(error).includes("duplicate column name")) throw error;
     }
   }
   backfillPostings(db);
+  backfillStableRelationshipIds(db);
   return db;
 }

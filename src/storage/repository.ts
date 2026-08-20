@@ -37,6 +37,12 @@ export function listPostings(db: Database, sourceId?: string): PostingRecord[] {
   return rows as PostingRecord[];
 }
 
+function requirePostingId(db: Database, observationId: string): string {
+  const row = db.query("SELECT posting_id as postingId FROM job_observations WHERE observation_id = ?").get(observationId) as { postingId: string | null } | null;
+  if (!row?.postingId) throw new Error(`observation ${observationId} has no stable posting record`);
+  return row.postingId;
+}
+
 export interface ScrapeRunRecord {
   runId: string;
   collectorId: string;
@@ -195,13 +201,15 @@ export function listApplicationFields(db: Database, observationId: string): Appl
 }
 
 export function saveApplicationObservation(db: Database, observationId: string, summary: ApplicationObservationSummary, observedAt = new Date().toISOString()): void {
+  const postingId = requirePostingId(db, observationId);
   db.query(`INSERT OR REPLACE INTO application_observations
-    (observation_id, account_gate, resume_required, required_field_count, optional_field_count,
+    (observation_id, posting_id, account_gate, resume_required, required_field_count, optional_field_count,
      unknown_field_count, custom_question_count, long_answer_count, attachment_count,
      manual_history_fields_json, observed_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(
       observationId,
+      postingId,
       summary.accountGate === null ? null : Number(summary.accountGate),
       summary.resumeRequired === null ? null : Number(summary.resumeRequired),
       summary.requiredFieldCount,
@@ -241,28 +249,31 @@ export function listApplicationObservation(db: Database, observationId: string):
 export interface AnalysisSnapshotRecord {
   snapshotId: string;
   observationId: string;
+  postingId?: string;
   analysisVersion: string;
   generatedAt: string;
   analysis: Record<string, unknown>;
 }
 
 export function saveAnalysisSnapshot(db: Database, snapshot: AnalysisSnapshotRecord): void {
+  const postingId = requirePostingId(db, snapshot.observationId);
   db.query(`INSERT INTO analysis_snapshots
-    (snapshot_id, observation_id, analysis_version, generated_at, analysis_json)
-    VALUES (?, ?, ?, ?, ?)
+    (snapshot_id, observation_id, posting_id, analysis_version, generated_at, analysis_json)
+    VALUES (?, ?, ?, ?, ?, ?)
     ON CONFLICT(observation_id, analysis_version) DO UPDATE SET
       snapshot_id = excluded.snapshot_id,
+      posting_id = excluded.posting_id,
       generated_at = excluded.generated_at,
       analysis_json = excluded.analysis_json`)
-    .run(snapshot.snapshotId, snapshot.observationId, snapshot.analysisVersion, snapshot.generatedAt, JSON.stringify(snapshot.analysis));
+    .run(snapshot.snapshotId, snapshot.observationId, postingId, snapshot.analysisVersion, snapshot.generatedAt, JSON.stringify(snapshot.analysis));
 }
 
 export function listAnalysisSnapshots(db: Database, observationId?: string): AnalysisSnapshotRecord[] {
   const rows = observationId
-    ? db.query(`SELECT snapshot_id as snapshotId, observation_id as observationId,
+    ? db.query(`SELECT snapshot_id as snapshotId, observation_id as observationId, posting_id as postingId,
       analysis_version as analysisVersion, generated_at as generatedAt, analysis_json as analysis
       FROM analysis_snapshots WHERE observation_id = ? ORDER BY generated_at DESC`).all(observationId)
-    : db.query(`SELECT snapshot_id as snapshotId, observation_id as observationId,
+    : db.query(`SELECT snapshot_id as snapshotId, observation_id as observationId, posting_id as postingId,
       analysis_version as analysisVersion, generated_at as generatedAt, analysis_json as analysis
       FROM analysis_snapshots ORDER BY generated_at DESC`).all();
   return (rows as Array<Omit<AnalysisSnapshotRecord, "analysis"> & { analysis: string }>).map((row) => ({
@@ -272,16 +283,20 @@ export function listAnalysisSnapshots(db: Database, observationId?: string): Ana
 }
 
 export function saveInference(db: Database, inference: PostingInference): void {
+  const fromPostingId = requirePostingId(db, inference.observationIds[0]);
+  const toPostingId = requirePostingId(db, inference.observationIds[1]);
   db.query("INSERT INTO posting_inferences (type, confidence, signals_json, observation_ids_json) VALUES (?, ?, ?, ?)")
     .run(inference.type, inference.confidence, JSON.stringify(inference.signals), JSON.stringify(inference.observationIds));
   db.query(`INSERT INTO lineage_edges
-    (from_observation_id, to_observation_id, relation, confidence, evidence_json, algorithm_version)
-    VALUES (?, ?, ?, ?, ?, ?)`)
-    .run(inference.observationIds[0], inference.observationIds[1], inference.type, inference.confidence, JSON.stringify({ signals: inference.signals }), LINEAGE_ALGORITHM_VERSION);
+    (from_posting_id, to_posting_id, from_observation_id, to_observation_id, relation, confidence, evidence_json, algorithm_version)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(fromPostingId, toPostingId, inference.observationIds[0], inference.observationIds[1], inference.type, inference.confidence, JSON.stringify({ signals: inference.signals }), LINEAGE_ALGORITHM_VERSION);
 }
 
 export interface LineageEdgeRecord {
   edgeId: number;
+  fromPostingId: string | null;
+  toPostingId: string | null;
   fromObservationId: string;
   toObservationId: string;
   relation: string;
@@ -291,7 +306,8 @@ export interface LineageEdgeRecord {
 }
 
 export function listLineageEdges(db: Database): LineageEdgeRecord[] {
-  const rows = db.query(`SELECT edge_id as edgeId, from_observation_id as fromObservationId,
+  const rows = db.query(`SELECT edge_id as edgeId, from_posting_id as fromPostingId, to_posting_id as toPostingId,
+    from_observation_id as fromObservationId,
     to_observation_id as toObservationId, relation, confidence, evidence_json as evidence,
     algorithm_version as algorithmVersion
     FROM lineage_edges ORDER BY edge_id DESC`).all() as Array<LineageEdgeRecord & { evidence: string }>;
@@ -300,6 +316,9 @@ export function listLineageEdges(db: Database): LineageEdgeRecord[] {
 
 export interface PostingEventRecord {
   sourceId: string;
+  postingId?: string;
+  beforePostingId?: string | null;
+  afterPostingId?: string;
   eventType: LifecycleState;
   beforeObservationId: string | null;
   afterObservationId: string;
@@ -308,19 +327,25 @@ export interface PostingEventRecord {
 }
 
 export function savePostingEvent(db: Database, event: PostingEventRecord): void {
+  const afterPostingId = event.afterPostingId ?? requirePostingId(db, event.afterObservationId);
+  const beforePostingId = event.beforeObservationId === null ? null : event.beforePostingId ?? requirePostingId(db, event.beforeObservationId);
+  const postingId = event.postingId ?? afterPostingId;
   db.query(`INSERT INTO posting_events
-    (source_id, event_type, before_observation_id, after_observation_id, observed_at, evidence_json)
-    VALUES (?, ?, ?, ?, ?, ?)`)
-    .run(event.sourceId, event.eventType, event.beforeObservationId, event.afterObservationId, event.observedAt, JSON.stringify(event.evidence));
+    (source_id, posting_id, before_posting_id, after_posting_id, event_type,
+     before_observation_id, after_observation_id, observed_at, evidence_json)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(event.sourceId, postingId, beforePostingId, afterPostingId, event.eventType, event.beforeObservationId, event.afterObservationId, event.observedAt, JSON.stringify(event.evidence));
 }
 
 export function listPostingEvents(db: Database, sourceId?: string): Array<PostingEventRecord & { eventId: number }> {
   const rows = sourceId
-    ? db.query(`SELECT event_id as eventId, source_id as sourceId, event_type as eventType,
+    ? db.query(`SELECT event_id as eventId, source_id as sourceId, posting_id as postingId,
+      before_posting_id as beforePostingId, after_posting_id as afterPostingId, event_type as eventType,
       before_observation_id as beforeObservationId, after_observation_id as afterObservationId,
       observed_at as observedAt, evidence_json as evidence
       FROM posting_events WHERE source_id = ? ORDER BY event_id DESC`).all(sourceId)
-    : db.query(`SELECT event_id as eventId, source_id as sourceId, event_type as eventType,
+    : db.query(`SELECT event_id as eventId, source_id as sourceId, posting_id as postingId,
+      before_posting_id as beforePostingId, after_posting_id as afterPostingId, event_type as eventType,
       before_observation_id as beforeObservationId, after_observation_id as afterObservationId,
       observed_at as observedAt, evidence_json as evidence
       FROM posting_events ORDER BY event_id DESC`).all();

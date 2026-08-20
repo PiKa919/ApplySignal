@@ -214,13 +214,14 @@ test("summary endpoint exposes source catalog states without treating them as ob
 test("summary serves persisted source metadata and lineage edges", async () => {
   const db = createDatabase(":memory:");
   db.query("UPDATE sources SET note = ? WHERE source_id = ?").run("persisted source note", "zfh");
-  saveObservation(db, { observationId: "obs-new", sourceId: "zfh", sourceJobId: "REQ-1", url: "https://example.test/jobs/1" } as any);
+  saveObservation(db, { observationId: "old", sourceId: "zfh", sourceJobId: "REQ-OLD", url: "https://example.test/jobs/old" } as any);
+  saveObservation(db, { observationId: "new", sourceId: "zfh", sourceJobId: "REQ-1", url: "https://example.test/jobs/1" } as any);
   saveInference(db, { type: "possible_repost", confidence: 0.9, signals: ["title"], observationIds: ["old", "new"] });
   const response = await createAppServer(db).fetch(new Request("http://local/api/summary"));
   expect(await response.json()).toMatchObject({
     sourceCatalog: expect.arrayContaining([expect.objectContaining({ sourceId: "zfh", note: "persisted source note" })]),
-    postings: [expect.objectContaining({ postingId: "zfh::REQ-1", sourcePostingKey: "REQ-1" })],
-    lineageEdges: [expect.objectContaining({ fromObservationId: "old", toObservationId: "new", algorithmVersion: "repost-v1" })],
+    postings: expect.arrayContaining([expect.objectContaining({ postingId: "zfh::REQ-1", sourcePostingKey: "REQ-1" })]),
+    lineageEdges: [expect.objectContaining({ fromPostingId: "zfh::REQ-OLD", toPostingId: "zfh::REQ-1", fromObservationId: "old", toObservationId: "new", algorithmVersion: "repost-v1" })],
   });
 });
 
@@ -286,11 +287,12 @@ test("job detail exposes persisted lifecycle events as history evidence", async 
   saveObservation(db, { observationId: "obs-after", sourceId: "zfh", sourceUrl: "https://example.test/jobs", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
   savePostingEvent(db, { sourceId: "zfh", eventType: "NEWLY_OBSERVED", beforeObservationId: null, afterObservationId: "obs-after", observedAt: "2026-08-20T00:00:00.000Z", evidence: { changes: [] } });
   const response = await createAppServer(db).fetch(new Request("http://local/api/jobs/obs-after"));
-  expect(await response.json()).toMatchObject({ events: [expect.objectContaining({ eventType: "NEWLY_OBSERVED", afterObservationId: "obs-after" })] });
+  expect(await response.json()).toMatchObject({ events: [expect.objectContaining({ eventType: "NEWLY_OBSERVED", afterObservationId: "obs-after", postingId: "zfh::obs-after", afterPostingId: "zfh::obs-after" })] });
 });
 
 test("job detail exposes persisted lineage edges for the selected observation", async () => {
   const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-old", sourceId: "zfh", sourceJobId: "REQ-OLD", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
   saveObservation(db, { observationId: "obs-new", sourceId: "zfh", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
   saveInference(db, { type: "possible_repost", confidence: 0.9, signals: ["same title"], observationIds: ["obs-old", "obs-new"] });
   const response = await createAppServer(db).fetch(new Request("http://local/api/jobs/obs-new"));

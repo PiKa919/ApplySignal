@@ -18,6 +18,8 @@ Application analysis also exposes a Resume Re-entry Tax: the count and severity 
 
 The application detail view also stores a structured public-form observation: account-gate state when observable, resume requirement, required/optional/unknown counts, custom-question and long-answer counts, attachments, and deduplicated manual-history labels. It never stores candidate-entered values. The current Zerodha application observation is documented in `docs/evidence/application-observation-2026-08-20.md`.
 
+Stable posting records own cross-observation history. Version-specific observations, lifecycle events, analysis snapshots, and possible-repost lineage retain their observation IDs as evidence while linking back to the stable posting ID; inferred lineage never merges or rewrites observed facts.
+
 Posting flags distinguish `TALENT_POOL`, `EXPLICIT_EVERGREEN`, and `EVERGREEN_LIKE` patterns. These are deterministic labels from observed title/description text, not claims that an ordinary listing is stale, fraudulent, or a single vacancy.
 
 ## Run locally

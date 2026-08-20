@@ -27,6 +27,8 @@ test("creates the parent directory for a fresh file-backed database", async () =
 
 test("round-trips lifecycle events separately from observations", () => {
   const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-before", sourceId: "demo-lifecycle", sourceJobId: "REQ-EVENT", observedAt: "2026-08-19T00:00:00.000Z" } as any);
+  saveObservation(db, { observationId: "obs-after", sourceId: "demo-lifecycle", sourceJobId: "REQ-EVENT", observedAt: "2026-08-20T00:00:00.000Z" } as any);
   savePostingEvent(db, {
     sourceId: "demo-lifecycle",
     eventType: "MEANINGFULLY_UPDATED",
@@ -37,7 +39,10 @@ test("round-trips lifecycle events separately from observations", () => {
   });
   expect(listPostingEvents(db)).toMatchObject([{
     sourceId: "demo-lifecycle",
+    postingId: "demo-lifecycle::REQ-EVENT",
     eventType: "MEANINGFULLY_UPDATED",
+    beforePostingId: "demo-lifecycle::REQ-EVENT",
+    afterPostingId: "demo-lifecycle::REQ-EVENT",
     beforeObservationId: "obs-before",
     afterObservationId: "obs-after",
     evidence: { changes: [{ field: "closingDate" }] },
@@ -58,6 +63,7 @@ test("round-trips structured application observations without candidate values",
     attachmentCount: 1,
     manualHistoryFields: ["Current CTC"],
   }, "2026-08-20T00:00:00.000Z");
+  expect(db.query("SELECT posting_id as postingId FROM application_observations WHERE observation_id = ?").get("obs-application")).toEqual({ postingId: "zfh::obs-application" });
   expect(listApplicationObservation(db, "obs-application")).toEqual({
     accountGate: true,
     resumeRequired: true,
@@ -91,6 +97,7 @@ test("versioned analysis snapshots round-trip and replace the same observation v
   expect(listAnalysisSnapshots(db)).toEqual([{
     snapshotId: "obs-snapshot:reciprocity-v1",
     observationId: "obs-snapshot",
+    postingId: "zfh::obs-snapshot",
     analysisVersion: "reciprocity-v1",
     generatedAt: "2026-08-20T00:02:00.000Z",
     analysis: { transparencyScore: 48, lifecycleState: "NEW" },
@@ -162,6 +169,8 @@ test("persists the source catalog independently from observations", () => {
 
 test("persists repost inference as an explicit lineage edge", () => {
   const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-old", sourceId: "zfh", sourceJobId: "REQ-OLD", observedAt: "2026-08-19T00:00:00.000Z" } as any);
+  saveObservation(db, { observationId: "obs-new", sourceId: "zfh", sourceJobId: "REQ-NEW", observedAt: "2026-08-20T00:00:00.000Z" } as any);
   saveInference(db, {
     type: "possible_repost",
     confidence: 0.94,
@@ -169,6 +178,8 @@ test("persists repost inference as an explicit lineage edge", () => {
     observationIds: ["obs-old", "obs-new"],
   });
   expect(listLineageEdges(db)).toMatchObject([{
+    fromPostingId: "zfh::REQ-OLD",
+    toPostingId: "zfh::REQ-NEW",
     fromObservationId: "obs-old",
     toObservationId: "obs-new",
     relation: "possible_repost",

@@ -55,4 +55,4 @@ GET /api/summary -> 200 (9 catalog sources, 11 runs, 1 validation result, 404 sn
 GET /api/jobs    -> 200 (404 jobs)
 ```
 
-The existing SQLite database now opens with 9 persisted source records, 401 posting records linked to 404 observations, and an empty lineage-edge table; no historical repost inference rows were present to migrate. The job-detail API and UI separately expose any persisted lineage edges alongside lifecycle events and bounded inferences.
+The existing SQLite database now opens with 9 persisted source records, 401 posting records linked to 404 observations, 404 analysis snapshots with stable posting IDs, and an empty lineage-edge table; no historical repost inference rows were present to migrate. The job-detail API and UI separately expose any persisted lineage edges alongside lifecycle events and bounded inferences.
