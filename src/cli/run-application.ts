@@ -3,12 +3,19 @@ import { ingestApplicationFields } from "../collectors/ingest";
 import { runBrightDataCollector, type CollectorRequest, type CollectorRunResult } from "../collectors/brightdata";
 import { listScrapeRuns, saveScrapeRun } from "../storage/repository";
 import { shouldSkipPaidRun } from "../collectors/policy";
+import { preflightPublicSource, type PublicSourcePreflightRequest, type PublicSourcePreflightResult } from "../collectors/preflight";
 
 export type ApplicationCollectorEnvironment = Record<string, string | undefined>;
 
 export interface ApplicationCollectorRequest extends CollectorRequest {
   observationId: string;
   runKind: "application";
+}
+
+export interface ApplicationCollectorRunDependencies {
+  preflight?: (request: PublicSourcePreflightRequest) => Promise<PublicSourcePreflightResult>;
+  runCollector?: typeof runBrightDataCollector;
+  log?: (message: string) => void;
 }
 
 export function applicationRequestFromEnv(env: ApplicationCollectorEnvironment): ApplicationCollectorRequest {
@@ -39,19 +46,38 @@ function saveApplicationRun(db: Parameters<typeof saveScrapeRun>[0], request: Ap
   });
 }
 
-export async function runApplicationCollectorFromEnv(env: ApplicationCollectorEnvironment = process.env): Promise<void> {
+export async function runApplicationCollectorFromEnv(env: ApplicationCollectorEnvironment = process.env, dependencies: ApplicationCollectorRunDependencies = {}): Promise<void> {
   const request = applicationRequestFromEnv(env);
   const db = createDatabase(env.APPLYSIGNAL_DB ?? "data/applysignal.db");
+  const log = dependencies.log ?? console.log;
+  const preflight = dependencies.preflight ?? preflightPublicSource;
+  const runCollector = dependencies.runCollector ?? runBrightDataCollector;
   try {
     const cooldownHours = Number(env.BRIGHTDATA_COOLDOWN_HOURS ?? "24");
     if (!Number.isFinite(cooldownHours) || cooldownHours < 0) throw new Error("BRIGHTDATA_COOLDOWN_HOURS must be a non-negative number");
     const decision = shouldSkipPaidRun(listScrapeRuns(db), request, new Date(), { cooldownHours, force: env.APPLYSIGNAL_FORCE_PAID_RUN === "true" });
     if (decision.skip) {
-      console.log(JSON.stringify({ skipped: true, reason: decision.reason, sourceId: request.sourceId, collectorId: request.collectorId, runKind: request.runKind }));
+      log(JSON.stringify({ skipped: true, reason: decision.reason, sourceId: request.sourceId, collectorId: request.collectorId, runKind: request.runKind, brightDataCalls: 0 }));
       return;
     }
 
-    const result = await runBrightDataCollector(request);
+    const preflightMode = env.APPLYSIGNAL_PREFLIGHT_MODE ?? "required";
+    if (preflightMode !== "required" && preflightMode !== "disabled") throw new Error("APPLYSIGNAL_PREFLIGHT_MODE must be required or disabled");
+    if (preflightMode === "disabled") {
+      log(JSON.stringify({ sourceId: request.sourceId, collectorId: request.collectorId, runKind: request.runKind, preflight: { status: "disabled" } }));
+    } else {
+      let expectedHost = env.BRIGHTDATA_APPLICATION_EXPECTED_HOST?.trim() || undefined;
+      if (!expectedHost && request.url) {
+        try { expectedHost = new URL(request.url).host; } catch { /* preflight reports invalid_url */ }
+      }
+      const preflightResult = await preflight({ sourceId: request.sourceId, targetUrl: request.url ?? "", ...(expectedHost ? { expectedHost } : {}), timeoutMs: Number(env.APPLYSIGNAL_PREFLIGHT_TIMEOUT_MS ?? "15000") });
+      if (preflightResult.status !== "reachable") {
+        log(JSON.stringify({ skipped: true, reason: `preflight_${preflightResult.status}`, sourceId: request.sourceId, collectorId: request.collectorId, runKind: request.runKind, preflight: preflightResult, brightDataCalls: 0 }));
+        return;
+      }
+    }
+
+    const result = await runCollector(request);
     if (result.status !== "success") {
       saveApplicationRun(db, request, result, "failed", 0, "quarantined");
       throw new Error(`application collector failed: ${result.stderr || "unknown Bright Data error"}`);
@@ -67,7 +93,7 @@ export async function runApplicationCollectorFromEnv(env: ApplicationCollectorEn
       throw new Error("application collector returned zero valid public form fields");
     }
     saveApplicationRun(db, request, result, "success", fieldCount);
-    console.log(JSON.stringify({ runId: result.runId, collectorId: request.collectorId, sourceId: request.sourceId, observationId: request.observationId, runKind: request.runKind, fieldCount }));
+    log(JSON.stringify({ runId: result.runId, collectorId: request.collectorId, sourceId: request.sourceId, observationId: request.observationId, runKind: request.runKind, fieldCount }));
   } finally {
     db.close();
   }

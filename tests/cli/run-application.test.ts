@@ -56,3 +56,23 @@ test("skips a recent application run before invoking Bright Data", async () => {
   });
   await rm(root, { recursive: true, force: true });
 });
+
+test("does not invoke Bright Data when the application preflight is blocked", async () => {
+  const root = await mkdtemp(join(tmpdir(), "applysignal-application-preflight-"));
+  const logs: string[] = [];
+  let paidCalls = 0;
+  await runApplicationCollectorFromEnv({
+    APPLYSIGNAL_DB: join(root, "applysignal.db"),
+    BRIGHTDATA_APPLICATION_COLLECTOR_ID: "c_application",
+    BRIGHTDATA_APPLICATION_SOURCE_ID: "zfh",
+    BRIGHTDATA_APPLICATION_TARGET_URL: "https://careers.example.test/jobs/role/apply",
+    BRIGHTDATA_APPLICATION_OBSERVATION_ID: "obs-role",
+  }, {
+    log: (message) => logs.push(message),
+    preflight: async () => ({ status: "blocked", sourceId: "zfh", targetUrl: "https://careers.example.test/jobs/role/apply", navigationSucceeded: true, httpStatus: 200, finalUrl: "https://careers.example.test/jobs/role/apply", finalHost: "careers.example.test", contentType: "text/html", bodyBytes: 100, blockIndicators: ["captcha"], brightDataCalls: 0, checkedAt: new Date().toISOString() }),
+    runCollector: async () => { paidCalls += 1; throw new Error("paid collector should not run"); },
+  });
+  expect(paidCalls).toBe(0);
+  expect(logs.join("\n")).toContain('"brightDataCalls":0');
+  await rm(root, { recursive: true, force: true });
+});

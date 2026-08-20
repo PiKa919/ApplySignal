@@ -35,6 +35,8 @@ The live Bright Data evidence is already recorded in [`live-run-2026-08-20.md`](
 
 The collector CLI defaults to cooldown, persisted source-readiness checks, and zero-credit ordinary HTTP preflight. A new paid run requires a deliberate operator decision and should have a specific incremental evidence goal.
 
+The bounded public application collector uses the same preflight boundary; it never submits a form and stops before Bright Data when the target is blocked or unreachable.
+
 ## 4. External submission checklist
 
 These items are intentionally not claimed as completed by the local repository:

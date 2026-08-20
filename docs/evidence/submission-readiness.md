@@ -42,7 +42,7 @@ The local demo runbook is [`demo-runbook.md`](demo-runbook.md). A public reposit
 Latest local verification:
 
 ```text
-127 tests passed, 0 failed
+128 tests passed, 0 failed
 bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
 bun build src/cli/run-collector.ts --target bun --outdir /tmp/applysignal-run-build
 git diff --check

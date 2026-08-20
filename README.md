@@ -74,6 +74,8 @@ bun run run:application
 
 The first live collector was created in Scraper Studio for Zerodha Fund House. The live run returned 13 listing observations. A second Scraper Studio collector inspected the public Senior Backend Engineer application form and returned 17 visible fields without submitting the form or collecting candidate values. The Palantir Lever fallback collector completed through a Bright Data batch handoff and returned 307 public listing observations. Razorpay returned 26 rows from its direct Greenhouse board, and Visa now has one explicitly scoped live Workday detail observation. `run:collector` applies the zero-credit public preflight and cooldown before any paid call, then applies the minimum-row cardinality guard and persists the run before the dashboard reads it.
 
+`run:application` applies the same cooldown and zero-credit public preflight by default. An application target that returns a block, redirect mismatch, HTTP error, or unreachable result is skipped with `brightDataCalls: 0`; `APPLYSIGNAL_PREFLIGHT_MODE=disabled` is required to deliberately bypass that check.
+
 The approved self-healing run added `closing_date_text`, returned `null` when no public deadline was visible, and preserved the existing listing fields. Evidence is documented in `docs/evidence/`.
 
 ## Oracle validation
