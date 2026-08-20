@@ -30,7 +30,7 @@ This is a local, read-only audit of the repository state. It does not trigger Br
 ## Product and safety checks
 
 - Reciprocity Gap remains separate from freshness, lifecycle, and source confidence.
-- Possible repost relationships remain inferences and never merge observations.
+- Possible repost relationships remain inferences and never merge observations; persisted lineage edges are exposed separately from lifecycle events.
 - Missing salary, deadlines, and application fields remain unknown rather than negative claims.
 - Application collectors inspect public field labels only; they do not submit forms or collect candidate values.
 - AI use is disclosed in the dashboard and README.
@@ -46,7 +46,7 @@ bun test
 bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
 ```
 
-Latest local verification: 120 tests passed and the Bun builds completed successfully. The controlled fault-injection demo reports `approvalRequired: true`, `brokenRunCommitted: false`, and `brightDataCalls: 0`.
+Latest local verification: 126 tests passed and the Bun builds completed successfully. The runtime smoke served `/`, `/app.js`, `/api/summary`, `/api/jobs`, `/api/jobs/:observationId`, and `/api/compare` successfully against the existing SQLite database. The controlled fault-injection demo reports `approvalRequired: true`, `brokenRunCommitted: false`, and `brightDataCalls: 0`.
 
 ## Remaining plan gap
 

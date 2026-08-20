@@ -50,7 +50,7 @@ Runtime smoke verification on port 3310:
 
 ```text
 GET /           -> 200 (4,964 bytes)
-GET /app.js     -> 200 (14,906 bytes)
+GET /app.js     -> 200 (15,368 bytes)
 GET /api/summary -> 200 (9 catalog sources, 11 runs, 1 validation result, 404 snapshots)
 GET /api/jobs    -> 200 (404 jobs)
 ```
