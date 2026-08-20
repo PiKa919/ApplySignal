@@ -10,6 +10,10 @@ CREATE TABLE IF NOT EXISTS sources (
   source_id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   url TEXT NOT NULL,
+  source_family TEXT NOT NULL,
+  collector_id TEXT,
+  oracle_id TEXT,
+  oracle_url TEXT,
   status TEXT NOT NULL,
   role TEXT NOT NULL,
   scope_json TEXT NOT NULL,
@@ -210,25 +214,16 @@ export function createDatabase(path: string): Database {
   if (path !== ":memory:") mkdirSync(dirname(path), { recursive: true });
   const db = new Database(path);
   db.exec(schema);
-  const sourceStatement = db.query(`INSERT INTO sources
-    (source_id, name, url, status, role, scope_json, note)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-    ON CONFLICT(source_id) DO UPDATE SET
-      name = excluded.name,
-      url = excluded.url,
-      status = excluded.status,
-      role = excluded.role,
-      scope_json = excluded.scope_json,
-      note = excluded.note`);
-  for (const source of SOURCE_CATALOG) {
-    sourceStatement.run(source.sourceId, source.name, source.url, source.status, source.role, JSON.stringify(source.scope), source.note);
-  }
   for (const statement of [
     "ALTER TABLE scrape_runs ADD COLUMN health_status TEXT NOT NULL DEFAULT 'healthy'",
     "ALTER TABLE scrape_runs ADD COLUMN health_report TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE job_observations ADD COLUMN flags_json TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE job_observations ADD COLUMN posting_id TEXT",
     "ALTER TABLE scrape_runs ADD COLUMN run_kind TEXT NOT NULL DEFAULT 'listing'",
+    "ALTER TABLE sources ADD COLUMN source_family TEXT NOT NULL DEFAULT 'custom'",
+    "ALTER TABLE sources ADD COLUMN collector_id TEXT",
+    "ALTER TABLE sources ADD COLUMN oracle_id TEXT",
+    "ALTER TABLE sources ADD COLUMN oracle_url TEXT",
     "ALTER TABLE application_observations ADD COLUMN posting_id TEXT",
     "ALTER TABLE analysis_snapshots ADD COLUMN posting_id TEXT",
     "ALTER TABLE lineage_edges ADD COLUMN from_posting_id TEXT",
@@ -240,6 +235,23 @@ export function createDatabase(path: string): Database {
     try { db.exec(statement); } catch (error) {
       if (!String(error).includes("duplicate column name")) throw error;
     }
+  }
+  const sourceStatement = db.query(`INSERT INTO sources
+    (source_id, name, url, source_family, collector_id, oracle_id, oracle_url, status, role, scope_json, note)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(source_id) DO UPDATE SET
+      name = excluded.name,
+      url = excluded.url,
+      source_family = excluded.source_family,
+      collector_id = excluded.collector_id,
+      oracle_id = excluded.oracle_id,
+      oracle_url = excluded.oracle_url,
+      status = excluded.status,
+      role = excluded.role,
+      scope_json = excluded.scope_json,
+      note = excluded.note`);
+  for (const source of SOURCE_CATALOG) {
+    sourceStatement.run(source.sourceId, source.name, source.url, source.sourceFamily, source.collectorId, source.oracleId, source.oracleUrl, source.status, source.role, JSON.stringify(source.scope), source.note);
   }
   backfillPostings(db);
   backfillStableRelationshipIds(db);

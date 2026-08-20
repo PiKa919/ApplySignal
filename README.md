@@ -20,6 +20,8 @@ The application detail view also stores a structured public-form observation: ac
 
 Stable posting records own cross-observation history. Version-specific observations, lifecycle events, analysis snapshots, and possible-repost lineage retain their observation IDs as evidence while linking back to the stable posting ID; inferred lineage never merges or rewrites observed facts.
 
+The persisted source registry also keeps source family, the evidenced Bright Data collector ID, and oracle metadata separate from free-form notes, so the Source Health surface can show what is configured versus what is actually live.
+
 Posting flags distinguish `TALENT_POOL`, `EXPLICIT_EVERGREEN`, and `EVERGREEN_LIKE` patterns. These are deterministic labels from observed title/description text, not claims that an ordinary listing is stale, fraudulent, or a single vacancy.
 
 ## Run locally

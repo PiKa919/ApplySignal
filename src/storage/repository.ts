@@ -11,7 +11,9 @@ const DEFAULT_FLAGS = { explicitEvergreen: false, evergreenLike: false, talentPo
 const LINEAGE_ALGORITHM_VERSION = "repost-v1";
 
 export function listSources(db: Database): SourceCatalogEntry[] {
-  const rows = db.query(`SELECT source_id as sourceId, name, url, status, role, scope_json as scope, note
+  const rows = db.query(`SELECT source_id as sourceId, name, url, source_family as sourceFamily,
+    collector_id as collectorId, oracle_id as oracleId, oracle_url as oracleUrl,
+    status, role, scope_json as scope, note
     FROM sources ORDER BY source_id`).all() as Array<Omit<SourceCatalogEntry, "scope"> & { scope: string }>;
   return rows.map((row) => ({ ...row, scope: JSON.parse(row.scope) } as SourceCatalogEntry));
 }

@@ -6,7 +6,7 @@ This audit maps the original ApplySignal plan to current repository and Bright D
 
 | Gate | Requirement | Current evidence | Status |
 | --- | --- | --- | --- |
-| 1 | Data contract, source scope, and health report | `src/domain/observations.ts`, `src/collectors/health.ts`, persisted `sources` table, and `src/domain/source-catalog.ts`; normalization and health tests | Complete |
+| 1 | Data contract, source scope, and health report | `src/domain/observations.ts`, `src/collectors/health.ts`, persisted `sources` table with source family/collector/oracle metadata, and `src/domain/source-catalog.ts`; normalization and health tests | Complete |
 | 2 | One hard real scraper from listing/detail to normalized output | Visa and Cadence public Workday detail collectors; one normalized live observation each | Complete as scoped detail; full-board coverage not claimed |
 | 3 | Run, validate, quarantine, diagnose, heal, approve, rerun | Controlled fault-injection artifact plus authenticated Zerodha self-healing evidence in `live-run-2026-08-20.md` | Complete |
 | 4 | Remaining hard sources | Zerodha board live; Visa/Cadence scoped; BrowserStack bounded attempts unresolved; Meesho generation failed | Partial, explicitly bounded |

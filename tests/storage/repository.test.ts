@@ -162,7 +162,7 @@ test("marks the latest matching heal event only after explicit approval", () => 
 test("persists the source catalog independently from observations", () => {
   const db = createDatabase(":memory:");
   expect(listSources(db)).toEqual(expect.arrayContaining([
-    expect.objectContaining({ sourceId: "zfh", status: "live" }),
+    expect.objectContaining({ sourceId: "zfh", status: "live", sourceFamily: "custom", collectorId: "c_mt0gzmiq1zdx7m835o", oracleId: null }),
     expect.objectContaining({ sourceId: "browserstack", status: "unresolved" }),
   ]));
 });

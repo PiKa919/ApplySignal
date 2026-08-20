@@ -50,11 +50,11 @@ async function load() {
   const lastKnownGood = (summary.lastKnownGood ?? []) as Array<{ sourceId: string; runKind: string; runId: string; rowCount: number; observedAt: string }>;
   const validationResults = (summary.validationResults ?? []) as Array<{ sourceId: string; oracleId: string; status: string; agreementRate: number | null; matchedCount: number; oracleCount: number }>;
   const healEvents = (summary.healEvents ?? []) as Array<{ sourceId: string; collectorId: string; reason: string; approved: boolean | null; repairedRunId: string | null; createdAt?: string }>;
-  const catalog = (summary.sourceCatalog ?? []) as Array<{ sourceId: string; name: string; status: string; note: string; scope: { geography: string | null; department: string | null; careerStage: string | null; employmentType: string | null; boardKind: string } }>;
+  const catalog = (summary.sourceCatalog ?? []) as Array<{ sourceId: string; name: string; status: string; note: string; sourceFamily: string; collectorId: string | null; oracleId: string | null; scope: { geography: string | null; department: string | null; careerStage: string | null; employmentType: string | null; boardKind: string } }>;
   const activeSources = catalog.filter((source) => source.status === "live" || source.status === "live_scoped");
   const boardSources = catalog.filter((source) => source.status === "live");
   const scopedSources = catalog.filter((source) => source.status === "live_scoped");
-  const cards = catalog.map((source) => `<div class="health-card ${esc(source.status)}"><div class="health-source">${esc(source.name)}</div><div class="health-meta">${esc(source.status)} · scope ${esc(source.scope.boardKind)} · ${esc(source.note)}</div></div>`);
+  const cards = catalog.map((source) => `<div class="health-card ${esc(source.status)}"><div class="health-source">${esc(source.name)}</div><div class="health-meta">${esc(source.status)} · ${esc(source.sourceFamily)} · scope ${esc(source.scope.boardKind)}${source.collectorId ? ` · collector ${esc(source.collectorId)}` : ""}${source.oracleId ? ` · oracle ${esc(source.oracleId)}` : ""} · ${esc(source.note)}</div></div>`);
   const runCards = runs.map((run) => {
     const report = run.healthReport ?? {};
     const evidence = [
