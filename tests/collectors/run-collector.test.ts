@@ -115,3 +115,30 @@ test("requires an explicit disabled mode before bypassing preflight", async () =
   expect(paidCalls).toBe(1);
   expect(JSON.parse(logs[0])).toMatchObject({ preflight: { status: "disabled" } });
 });
+
+test("does not paid-run a catalog source marked unresolved without an explicit override", async () => {
+  let paidCalls = 0;
+  const logs: string[] = [];
+
+  await runCollectorFromEnv({
+    BRIGHTDATA_COLLECTOR_ID: "c_browserstack_unresolved",
+    BRIGHTDATA_SOURCE_ID: "browserstack",
+    BRIGHTDATA_TARGET_URL: "https://browserstack.wd3.myworkdayjobs.com/External",
+    APPLYSIGNAL_DB: ":memory:",
+  }, {
+    preflight: async () => ({ status: "reachable", brightDataCalls: 0 } as any),
+    runCollector: async () => {
+      paidCalls += 1;
+      throw new Error("unresolved source should not be paid-run");
+    },
+    log: (message) => logs.push(message),
+  });
+
+  expect(paidCalls).toBe(0);
+  expect(JSON.parse(logs[0])).toMatchObject({
+    skipped: true,
+    reason: "source_not_ready",
+    sourceStatus: "unresolved",
+    brightDataCalls: 0,
+  });
+});

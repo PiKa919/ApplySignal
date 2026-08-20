@@ -136,7 +136,7 @@ bun run preflight
 
 The preflight checks reachability and block/redirect evidence only; a reachable page is not treated as a successful collector.
 
-`run:collector` requires this preflight by default. For a target that is intentionally inaccessible to ordinary HTTP but has a separately reviewed Bright Data path, set `APPLYSIGNAL_PREFLIGHT_MODE=disabled` explicitly; the command logs that bypass before making the paid call. The default should remain `required`.
+`run:collector` requires this preflight by default. It also refuses catalog sources marked `unresolved` or `failed_generation` before making any network or Bright Data call. A deliberate operator retry must set `APPLYSIGNAL_ALLOW_UNRESOLVED_SOURCE=true`; this override is separate from the preflight bypass. For a target that is intentionally inaccessible to ordinary HTTP but has a separately reviewed Bright Data path, set `APPLYSIGNAL_PREFLIGHT_MODE=disabled` explicitly; the command logs that bypass before making the paid call. The defaults should remain `required` and `false`.
 
 The authenticated CLI's `pipelines list` output is not the Scrapers Library. The CLI has no Marketplace/library search command, so the repository records the limitation explicitly in [`docs/evidence/brightdata-preflight.md`](docs/evidence/brightdata-preflight.md) and does not claim that a pipeline-list result proves library absence.
 

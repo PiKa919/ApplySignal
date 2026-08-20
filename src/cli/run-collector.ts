@@ -4,6 +4,7 @@ import { ingestCollectorResult } from "../collectors/ingest";
 import { runBrightDataCollector, type CollectorRequest } from "../collectors/brightdata";
 import { shouldSkipPaidRun } from "../collectors/policy";
 import { preflightPublicSource, type PublicSourcePreflightRequest, type PublicSourcePreflightResult } from "../collectors/preflight";
+import { SOURCE_CATALOG } from "../domain/source-catalog";
 
 export type CollectorEnvironment = Record<string, string | undefined>;
 
@@ -58,6 +59,19 @@ export async function runCollectorFromEnv(env: CollectorEnvironment = process.en
     });
     if (decision.skip) {
       log(JSON.stringify({ skipped: true, reason: decision.reason, sourceId: request.sourceId, collectorId: request.collectorId }));
+      return;
+    }
+
+    const catalogEntry = SOURCE_CATALOG.find((source) => source.sourceId === request.sourceId);
+    if (catalogEntry && ["unresolved", "failed_generation"].includes(catalogEntry.status) && env.APPLYSIGNAL_ALLOW_UNRESOLVED_SOURCE !== "true") {
+      log(JSON.stringify({
+        skipped: true,
+        reason: "source_not_ready",
+        sourceId: request.sourceId,
+        collectorId: request.collectorId,
+        sourceStatus: catalogEntry.status,
+        brightDataCalls: 0,
+      }));
       return;
     }
 
