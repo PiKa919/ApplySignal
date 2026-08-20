@@ -39,7 +39,7 @@ The collector CLI defaults to cooldown, persisted source-readiness checks, and z
 
 These items are intentionally not claimed as completed by the local repository:
 
-- [ ] Public repository URL configured and verified.
+- [ ] Public repository URL configured and verified. Current workspace has no Git remote and no matching existing owned repository was found during read-only inspection.
 - [ ] Demo video URL recorded and verified.
 - [ ] Final submission form completed with the bounded source-coverage language from [`submission-readiness.md`](submission-readiness.md).
 - [ ] AI assistance disclosure retained in the public README and demo.
