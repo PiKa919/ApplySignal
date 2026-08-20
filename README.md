@@ -68,7 +68,7 @@ BRIGHTDATA_APPLICATION_OBSERVATION_ID=<existing-observation-id> \
 bun run run:application
 ```
 
-The first live collector was created in Scraper Studio for Zerodha Fund House. The live run returned 13 listing observations. A second Scraper Studio collector inspected the public Senior Backend Engineer application form and returned 17 visible fields without submitting the form or collecting candidate values. The Palantir Lever fallback collector completed through a Bright Data batch handoff and returned 307 public listing observations. Razorpay returned 26 rows from its direct Greenhouse board, and Visa now has one explicitly scoped live Workday detail observation. `run:collector` applies the minimum-row cardinality guard and persists the run before the dashboard reads it.
+The first live collector was created in Scraper Studio for Zerodha Fund House. The live run returned 13 listing observations. A second Scraper Studio collector inspected the public Senior Backend Engineer application form and returned 17 visible fields without submitting the form or collecting candidate values. The Palantir Lever fallback collector completed through a Bright Data batch handoff and returned 307 public listing observations. Razorpay returned 26 rows from its direct Greenhouse board, and Visa now has one explicitly scoped live Workday detail observation. `run:collector` applies the zero-credit public preflight and cooldown before any paid call, then applies the minimum-row cardinality guard and persists the run before the dashboard reads it.
 
 The approved self-healing run added `closing_date_text`, returned `null` when no public deadline was visible, and preserved the existing listing fields. Evidence is documented in `docs/evidence/`.
 
@@ -120,7 +120,7 @@ Codex/ChatGPT was used for development assistance, debugging, implementation rev
 
 Collector creation and live runs are paid external actions. The project keeps one completed collector per target, prefers scoped detail pages or small boards when full-board generation is unreliable, applies a minimum-row guard, and does not rerun a target solely for confirmation. A run handed to Bright Data batch mode is treated as pending until output is returned; it is not retriggered automatically after a local poll is stopped.
 
-The collector CLI skips any recent run for the same collector/source within the default 24-hour cooldown before invoking Bright Data. Successful runs report `recent_success`; failed or quarantined runs report `recent_failure`. Set `BRIGHTDATA_COOLDOWN_HOURS=0` for a deliberate no-cooldown run, or set `APPLYSIGNAL_FORCE_PAID_RUN=true` when an explicit rerun is justified.
+The collector CLI skips any recent run for the same collector/source within the default 24-hour cooldown before invoking Bright Data. Successful runs report `recent_success`; failed or quarantined runs report `recent_failure`. After cooldown permits a run, it performs the ordinary HTTP preflight against `BRIGHTDATA_TARGET_URL` and skips the paid call for an invalid URL, redirect mismatch, HTTP error, block page, or unreachable target. These skips include the preflight evidence and `brightDataCalls: 0`. Set `BRIGHTDATA_COOLDOWN_HOURS=0` for a deliberate no-cooldown run, or set `APPLYSIGNAL_FORCE_PAID_RUN=true` when an explicit rerun is justified.
 
 Ingestion applies a structural, semantic, and distributional health gate after envelope expansion: minimum cardinality, required-field coverage, duplicate identity/URL detection, expected URL-host checks, pagination evidence when supplied, scope-aware empty-state checks, obvious title/location swaps, invalid salary ranges, impossible exact date ordering, and category distributions. A suspicious result is persisted as `quarantined` with its health report and produces no job observations. `compareDistributionalHealth` reports baseline drift as review evidence; distribution changes do not trigger automatic healing by themselves.
 
@@ -135,6 +135,8 @@ bun run preflight
 ```
 
 The preflight checks reachability and block/redirect evidence only; a reachable page is not treated as a successful collector.
+
+`run:collector` requires this preflight by default. For a target that is intentionally inaccessible to ordinary HTTP but has a separately reviewed Bright Data path, set `APPLYSIGNAL_PREFLIGHT_MODE=disabled` explicitly; the command logs that bypass before making the paid call. The default should remain `required`.
 
 The authenticated CLI's `pipelines list` output is not the Scrapers Library. The CLI has no Marketplace/library search command, so the repository records the limitation explicitly in [`docs/evidence/brightdata-preflight.md`](docs/evidence/brightdata-preflight.md) and does not claim that a pipeline-list result proves library absence.
 

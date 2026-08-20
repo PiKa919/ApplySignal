@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test";
-import { collectorRequestFromEnv } from "../../src/cli/run-collector";
+import { collectorRequestFromEnv, runCollectorFromEnv } from "../../src/cli/run-collector";
 import { shouldSkipPaidRun } from "../../src/collectors/policy";
 
 test("builds a collector request from non-secret environment configuration", () => {
@@ -54,4 +54,64 @@ test("builds scope-aware health configuration from environment", () => {
     emptyStateVerified: true,
     urlField: "url",
   });
+});
+
+test("does not invoke Bright Data when the automatic preflight is blocked", async () => {
+  let paidCalls = 0;
+  const logs: string[] = [];
+
+  await runCollectorFromEnv({
+    BRIGHTDATA_COLLECTOR_ID: "c_test",
+    BRIGHTDATA_SOURCE_ID: "blocked-source",
+    BRIGHTDATA_TARGET_URL: "https://example.test/jobs",
+    APPLYSIGNAL_DB: ":memory:",
+  }, {
+    preflight: async () => ({ status: "blocked", brightDataCalls: 0 }),
+    runCollector: async () => {
+      paidCalls += 1;
+      throw new Error("paid collector should not run");
+    },
+    log: (message) => logs.push(message),
+  });
+
+  expect(paidCalls).toBe(0);
+  expect(JSON.parse(logs[0])).toMatchObject({
+    skipped: true,
+    reason: "preflight_blocked",
+    brightDataCalls: 0,
+  });
+});
+
+test("requires an explicit disabled mode before bypassing preflight", async () => {
+  let paidCalls = 0;
+  const logs: string[] = [];
+
+  await runCollectorFromEnv({
+    BRIGHTDATA_COLLECTOR_ID: "c_test",
+    BRIGHTDATA_SOURCE_ID: "dynamic-source",
+    BRIGHTDATA_TARGET_URL: "https://example.test/jobs",
+    APPLYSIGNAL_DB: ":memory:",
+    APPLYSIGNAL_PREFLIGHT_MODE: "disabled",
+  }, {
+    preflight: async () => {
+      throw new Error("preflight should be bypassed only in explicit disabled mode");
+    },
+    runCollector: async () => {
+      paidCalls += 1;
+      return {
+        runId: "run-1",
+        collectorId: "c_test",
+        sourceId: "dynamic-source",
+        observedAt: "2026-08-20T00:00:00.000Z",
+        status: "success",
+        rawOutput: "[]",
+        rows: [{ title: "Role", url: "https://example.test/jobs/1" }],
+        expectedMinimumRows: 1,
+      } as any;
+    },
+    log: (message) => logs.push(message),
+  });
+
+  expect(paidCalls).toBe(1);
+  expect(JSON.parse(logs[0])).toMatchObject({ preflight: { status: "disabled" } });
 });

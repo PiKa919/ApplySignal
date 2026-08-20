@@ -33,6 +33,8 @@ This is source-level dashboard evidence that these exact domains did not have a 
 
 `bun run preflight` performs an ordinary HTTP reachability check before any Bright Data collector is considered. It follows redirects, checks the expected host, records status/content type/body size, filters block indicators out of scripts/styles to avoid false positives, and always reports `brightDataCalls: 0`.
 
+The normal `run:collector` path now invokes the same check after cooldown permits a run and before `brightdata scraper run`. A non-`reachable` result is reported as `preflight_<status>` and returns without invoking Bright Data. The only bypass is an explicit `APPLYSIGNAL_PREFLIGHT_MODE=disabled`, which is logged before the paid call; the default mode is `required`.
+
 | Source | Public URL result | Interpretation |
 | --- | --- | --- |
 | BrowserStack | HTTP 200, expected Workday host, 7,293 bytes, no block indicators | Public board reachable; existing Bright Data generation remains unresolved |
