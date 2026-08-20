@@ -73,7 +73,7 @@ Reachability alone is insufficient to promote BrowserStack or CRED: both still l
 | Cadence | Live scoped detail | One public Workday detail collector completed; full-board generation remains unresolved |
 | BrowserStack | Unresolved generation | Existing `c_mt0iq7oysxok3r6q4` reached preview picker; a new bounded scoped attempt `c_mt18102x1tmz2acjx0` also timed out at preview picker |
 | Meesho | Failed generation | Two custom Scraper Studio generation attempts failed; no live data claimed |
-| CRED | Unresolved after bounded detail probe | Authenticated exact-domain library lookup returned no result; one public Lever detail attempt returned zero rows and was quarantined |
+| CRED | Unresolved after bounded detail probe | Authenticated exact-domain library lookup returned no result; one public Lever detail attempt returned zero rows and was quarantined; new scoped CLI generation also timed out |
 | Postman | Partial validation source | 50 normalized Scraper Studio IDs matched 111 public Greenhouse IDs; extraction remains incomplete |
 | Razorpay | Keep as live candidate | Direct Greenhouse board collector completed and returned 26 public listing rows |
 
@@ -89,6 +89,7 @@ Reachability alone is insufficient to promote BrowserStack or CRED: both still l
 | Postman Greenhouse board | `c_mt0jgbmgtpeo9ghcx` | Generation reached preview picker at attempt 180 when bounded polling stopped | Unresolved; no live output claimed |
 | Postman Greenhouse board retry | `c_mt0kenri1czi6msxio` / batch `j_mt0kix8hl18ggr55o` | Collector completed, but the run hit the realtime page limit and entered batch polling; local polling stopped at attempt 13 before output | Unresolved; no rows persisted and no rerun planned without a credit decision |
 | CRED openings | `c_mt0hphi210sst7z27` | Generation reached preview-picker but remained unresolved after bounded polling | Unresolved; no live output claimed |
+| CRED openings scoped retry | `c_mt189layinrjas5h2` | New CLI generation with a 20-listing bounded prompt timed out at `code_generator` on attempt 180/180; no preview, code, or output | Unresolved; no scraper run or approval; half-built collector remains for manual UI cleanup if desired |
 | CRED Lever board | `c_mt0jsv3s22rjyq5w83` | Direct public board generation reached code generation at attempt 184 when bounded polling stopped; one later public detail probe returned zero rows (`run_1787178058137`) | Unresolved; the zero-row run was quarantined and no retry is planned |
 | Razorpay branded careers | `c_mt0huks12jww1ro77d` | Completed and returned the public Greenhouse board URL | Partial success; branded-page routing observed, but not a jobs dataset |
 | Razorpay Greenhouse board | `c_mt0hxxvn1inyto72ik` | Generation remained in code generation after bounded polling | Unresolved; no live output claimed |
