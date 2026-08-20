@@ -55,7 +55,7 @@ export function normalizeJobObservation(input: RawJobRow, context: Normalization
   const closingRaw = input.closing_date ?? input.closing_date_text;
   const posted = dateValue(postedRaw);
   const closing = dateValue(closingRaw);
-  const sourceJobId = text(input.source_job_id ?? input.job_id);
+  const sourceJobId = text(input.source_job_id ?? input.job_id ?? input.job_id_value);
   const title = text(input.title);
   const location = text(input.location);
   const employmentType = text(input.employment_type);
@@ -65,7 +65,7 @@ export function normalizeJobObservation(input: RawJobRow, context: Normalization
   const listingUrl = url(input.url ?? input.job_detail_url ?? input.product_page_url);
   const flags = classifyPostingFlags(title, description);
   const provenance: JobProvenance = {
-    sourceJobId: provenanceFor(input.source_job_id ?? input.job_id),
+    sourceJobId: provenanceFor(input.source_job_id ?? input.job_id ?? input.job_id_value),
     title: provenanceFor(input.title),
     location: provenanceFor(input.location),
     employmentType: provenanceFor(input.employment_type),

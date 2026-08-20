@@ -40,6 +40,18 @@ describe("normalizeJobObservation", () => {
     expect(result.url).toBe("https://example.test/jobs/live-1");
   });
 
+  test("accepts a collector-specific job_id_value without inventing an ID", () => {
+    const result = normalizeJobObservation({
+      job_id_value: "4721391005",
+      title: "Solutions Consultant",
+      location: "Malaysia",
+      job_detail_url: "https://job-boards.greenhouse.io/razorpaysoftwareprivatelimited/jobs/4721391005",
+    }, { sourceId: "razorpay", sourceUrl: "https://job-boards.greenhouse.io/razorpaysoftwareprivatelimited", observedAt: "2026-08-20T00:00:00.000Z" });
+
+    expect(result.sourceJobId).toBe("4721391005");
+    expect(result.provenance.sourceJobId).toEqual({ raw: "4721391005", kind: "exact" });
+  });
+
   test("labels a talent-pool listing without calling it an ordinary evergreen role", () => {
     const result = normalizeJobObservation({
       title: "Didn't see a job? Apply here!",

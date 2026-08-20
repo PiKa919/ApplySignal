@@ -12,6 +12,17 @@ test("summary endpoint exposes source confidence separately from job analysis", 
   expect(await response.json()).toMatchObject({ sourceConfidence: expect.any(Array), analyses: expect.any(Array) });
 });
 
+test("production mode excludes fixture observations and adds the persisted employer name", async () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "live-job", sourceId: "zfh", title: "Backend Engineer", location: "Bengaluru", url: "https://careers.zerodhafundhouse.com/jobs/live-job", dataMode: "live", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 0.94 } as any);
+  saveObservation(db, { observationId: "fixture-job", sourceId: "demo-controlled", title: "Fake Role", location: "Remote", url: "https://fixture.applysignal.test/jobs/fake", dataMode: "fixture", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 0.8 } as any);
+
+  const response = await createAppServer(db, { liveOnly: true }).fetch(new Request("http://local/api/jobs"));
+  expect(await response.json()).toMatchObject([
+    { observationId: "live-job", companyName: "Zerodha Fund House", dataMode: "live", url: "https://careers.zerodhafundhouse.com/jobs/live-job" },
+  ]);
+});
+
 test("summary and jobs use persisted analysis snapshots when available", async () => {
   const db = createDatabase(":memory:");
   saveObservation(db, { observationId: "obs-snapshot-api", sourceId: "zfh", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
@@ -85,14 +96,14 @@ test("dashboard renders structural health state for collector runs", async () =>
 test("dashboard exposes health evidence details for source runs", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   const body = await response.text();
-  expect(body).toContain("HEALTH EVIDENCE");
+  expect(body).toContain("Health evidence");
   expect(body).toContain("duplicateUrlCount");
   expect(body).toContain("paginationErrors");
 });
 
 test("dashboard labels last-known-good evidence", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
-  expect(await response.text()).toContain("LAST KNOWN GOOD");
+  expect(await response.text()).toContain("last known good");
 });
 
 test("dashboard labels review-gated heal evidence", async () => {
@@ -280,6 +291,13 @@ test("dashboard includes the candidate compare surface", async () => {
   const scriptBody = await script.text();
   expect(scriptBody).toContain("/api/compare");
   expect(scriptBody).toContain("APPLICATION BURDEN");
+});
+
+test("dashboard compare options identify the employer and expose listing links", async () => {
+  const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
+  const body = await response.text();
+  expect(body).toContain("companyName");
+  expect(body).toContain("Open listing");
 });
 
 test("job detail exposes persisted lifecycle events as history evidence", async () => {

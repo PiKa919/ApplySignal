@@ -36,7 +36,7 @@ bun run dev
 
 Open <http://localhost:3000>.
 
-The fixture command writes `data/applysignal.db`, which is ignored by Git. It seeds the public-source snapshot plus separate, clearly labeled `demo-lifecycle` and `demo-controlled` sources. The controlled source contains six edge cases: a fresh role, a relative-date role, explicit evergreen hiring, a talent-pool posting, a multi-location role, and a rich public application form. It supports two semantically equivalent layouts to exercise extraction resilience:
+The fixture command writes a local `data/applysignal.db` for tests and demos. That local fixture database is not used by the hosted production container. It seeds the public-source snapshot plus separate, clearly labeled `demo-lifecycle` and `demo-controlled` sources. The controlled source contains six edge cases: a fresh role, a relative-date role, explicit evergreen hiring, a talent-pool posting, a multi-location role, and a rich public application form. It supports two semantically equivalent layouts to exercise extraction resilience:
 
 ```bash
 APPLYSIGNAL_FIXTURE_LAYOUT=layout-b bun run seed:fixture
@@ -126,7 +126,7 @@ Codex/ChatGPT was used for development assistance, debugging, implementation rev
 
 ## Hosted demo
 
-The hosted demo is available at [applysignal.onrender.com](https://applysignal.onrender.com/). Render is the supported deployment target because ApplySignal is a Bun HTTP server with a SQLite-backed local snapshot. [`render.yaml`](render.yaml) and [`Dockerfile`](Dockerfile) provide a direct Docker deployment; the hosted container seeds the controlled fixture so the public demo has deterministic evidence without publishing the local live database. Vercel would require a serverless adapter and a different persistence strategy.
+The hosted demo is available at [applysignal.onrender.com](https://applysignal.onrender.com/). Render is the supported deployment target because ApplySignal is a Bun HTTP server with a SQLite-backed live snapshot. The production container reads the checked-in `data/applysignal.db` and enables live-only mode; it never seeds controlled fixture observations. The manually guarded Bright Data workflow can refresh that database from validated public collectors and publish the new snapshot through GitHub Actions. Vercel would require a serverless adapter and a different persistence strategy.
 
 The repository includes two GitHub Actions workflows:
 
@@ -135,7 +135,7 @@ The repository includes two GitHub Actions workflows:
 
 ## Demo walkthrough
 
-The repository also includes a short fixture-only UI walkthrough: [download the ApplySignal demo video](artifacts/applysignal-demo-2026-08-20.mp4). It shows the overview, Job Evidence, Source Health, and Compare surfaces without exposing credentials or candidate data.
+The repository also includes a short fixture-only UI walkthrough: [download the ApplySignal demo video](artifacts/applysignal-demo-2026-08-20.mp4). It shows the overview, Job Evidence, Source Health, and Compare surfaces without exposing credentials or candidate data. Fixture records are test/demo inputs only and are not part of the hosted production snapshot.
 
 ## Contributors
 

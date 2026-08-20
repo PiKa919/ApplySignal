@@ -9,7 +9,7 @@
 - Public URL: https://applysignal.onrender.com/
 - Health endpoint: https://applysignal.onrender.com/api/summary
 
-The Render Blueprint used the repository's root [`render.yaml`](../../render.yaml) and Dockerfile. The hosted container seeds the controlled fixture into its ephemeral `/tmp` SQLite path when no database exists; it does not publish the local live database or any candidate data.
+The Render Blueprint uses the repository's root [`render.yaml`](../../render.yaml) and Dockerfile. The hosted container copies the checked-in live SQLite snapshot into `/app/data/applysignal.db` and runs with `APPLYSIGNAL_LIVE_ONLY=true`; it does not seed controlled fixtures or publish candidate data.
 
 ## Runtime verification
 
@@ -27,4 +27,3 @@ A clean browser session loaded the `ApplySignal` page, rendered the Compare pane
 ## Hosting limitation
 
 Render's free service can spin down after inactivity, so the first request may be delayed. The fixture-seeded public demo is deterministic; live Bright Data collection is not run by the hosted web process.
-

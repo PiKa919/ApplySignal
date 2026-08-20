@@ -29,13 +29,26 @@ on:
         description: "Expected final hostname; leave blank to derive it from target_url"
         required: false
         type: string
+      required_fields:
+        description: "Comma-separated required fields for the selected collector"
+        required: false
+        default: title,location
+        type: string
+      identity_field:
+        description: "Optional stable identity field from the collector output"
+        required: false
+        type: string
+      url_field:
+        description: "Optional stable listing URL field from the collector output"
+        required: false
+        type: string
       paid_confirmation:
         description: "Type RUN_PAID_COLLECTION only when you accept a Bright Data collection call"
         required: false
         type: string
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   preflight:
@@ -98,6 +111,9 @@ jobs:
           BRIGHTDATA_SOURCE_URL: ${{ inputs.target_url }}
           BRIGHTDATA_TARGET_URL: ${{ inputs.target_url }}
           BRIGHTDATA_EXPECTED_HOST: ${{ inputs.expected_host }}
+          BRIGHTDATA_REQUIRED_FIELDS: ${{ inputs.required_fields }}
+          BRIGHTDATA_IDENTITY_FIELD: ${{ inputs.identity_field }}
+          BRIGHTDATA_URL_FIELD: ${{ inputs.url_field }}
           BRIGHTDATA_MIN_ROWS: "1"
           BRIGHTDATA_SCOPE_KIND: all_jobs
           APPLYSIGNAL_DB: data/applysignal.db
@@ -106,3 +122,12 @@ jobs:
         run: |
           test -n "$BRIGHTDATA_COLLECTOR_ID"
           bun run run:collector
+
+      - name: Audit and publish the live SQLite snapshot
+        run: |
+          bun run audit
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/applysignal.db
+          git diff --cached --quiet || git commit -m "data: refresh live ApplySignal snapshot"
+          git push

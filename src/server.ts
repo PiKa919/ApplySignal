@@ -5,9 +5,16 @@ import type { Database } from "bun:sqlite";
 
 const json = (value: unknown, status = 200): Response => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8" } });
 
-export function createAppServer(db: Database) {
+export interface AppServerOptions {
+  liveOnly?: boolean;
+}
+
+export function createAppServer(db: Database, options: AppServerOptions = {}) {
   const createContext = () => {
-    const jobs = listLatestObservations(db);
+    const sourceCatalog = listSources(db);
+    const sourceNames = new Map(sourceCatalog.map((source) => [source.sourceId, source.name]));
+    const allJobs = listLatestObservations(db);
+    const jobs = options.liveOnly ? allJobs.filter((job) => job.dataMode === "live") : allJobs;
     const snapshots = listAnalysisSnapshots(db);
     const snapshotByObservation = new Map(snapshots.map((snapshot) => [snapshot.observationId, snapshot.analysis]));
     const fieldsByObservation = new Map(jobs.map((job) => [job.observationId, listApplicationFields(db, job.observationId)]));
@@ -19,7 +26,8 @@ export function createAppServer(db: Database) {
       const previous = historyFor(observation)[0] ?? null;
       return snapshotByObservation.get(observation.observationId) ?? buildObservationAnalysis(observation, previous, fieldsByObservation.get(observation.observationId) ?? []);
     };
-    return { jobs, jobsBySource, historyFor, analysisFor, snapshots };
+    const viewJob = (job: typeof jobs[number]) => ({ ...job, companyName: sourceNames.get(job.sourceId) ?? job.sourceId });
+    return { jobs, jobsBySource, historyFor, analysisFor, snapshots, sourceCatalog, viewJob };
   };
 
   return {
@@ -27,13 +35,13 @@ export function createAppServer(db: Database) {
       const url = new URL(request.url);
       if (url.pathname === "/api/summary") {
         const context = createContext();
-        const { jobs, snapshots } = context;
+        const { jobs, snapshots, sourceCatalog, viewJob } = context;
         const runs = listScrapeRuns(db);
         const lastKnownGood = [...new Map(runs
           .filter((run) => run.status === "success" && run.healthStatus === "healthy")
           .map((run) => [`${run.sourceId}:${run.runKind}`, run])).values()];
         return json({
-          sourceCatalog: listSources(db),
+          sourceCatalog,
           postings: listPostings(db),
           runs,
           lastKnownGood,
@@ -43,12 +51,12 @@ export function createAppServer(db: Database) {
           lineageEdges: listLineageEdges(db),
           analysisSnapshots: snapshots,
           sourceConfidence: jobs.map((job) => ({ observationId: job.observationId, sourceId: job.sourceId, confidence: job.sourceConfidence, dataMode: job.dataMode })),
-          analyses: jobs.map((job) => ({ observationId: job.observationId, ...context.analysisFor(job) })),
+          analyses: jobs.map((job) => ({ observationId: job.observationId, companyName: viewJob(job).companyName, ...context.analysisFor(job) })),
         });
       }
       if (url.pathname === "/api/jobs") {
         const context = createContext();
-        return json(context.jobs.map((job) => ({ ...job, analysis: context.analysisFor(job) })));
+        return json(context.jobs.map((job) => ({ ...context.viewJob(job), analysis: context.analysisFor(job) })));
       }
       if (url.pathname === "/api/compare") {
         const leftId = url.searchParams.get("left");
@@ -61,8 +69,8 @@ export function createAppServer(db: Database) {
         if (!left || !right) return json({ error: "one or both observations were not found" }, 404);
         return json({
           dimensions: ["freshness", "transparency", "application_burden", "lifecycle", "source_confidence"],
-          left: { ...left, analysis: context.analysisFor(left) },
-          right: { ...right, analysis: context.analysisFor(right) },
+          left: { ...context.viewJob(left), analysis: context.analysisFor(left) },
+          right: { ...context.viewJob(right), analysis: context.analysisFor(right) },
         });
       }
       const detailMatch = url.pathname.match(/^\/api\/jobs\/([^/]+)$/);
@@ -74,7 +82,7 @@ export function createAppServer(db: Database) {
         const inferences = history.map((candidate) => inferPostingRelationship(candidate, job)).filter((inference) => inference !== null);
         const events = listPostingEvents(db).filter((event) => event.sourceId === job.sourceId && (event.postingId === job.postingId || event.afterObservationId === job.observationId || event.beforeObservationId === job.observationId));
         const lineageEdges = listLineageEdges(db).filter((edge) => edge.fromPostingId === job.postingId || edge.toPostingId === job.postingId || edge.fromObservationId === job.observationId || edge.toObservationId === job.observationId);
-        return json({ ...job, fields: listApplicationFields(db, job.observationId), applicationObservation: listApplicationObservation(db, job.observationId), analysis: context.analysisFor(job), diffs: history.map((candidate) => diffObservations(candidate, job)), inferences, lineageEdges, events });
+        return json({ ...context.viewJob(job), fields: listApplicationFields(db, job.observationId), applicationObservation: listApplicationObservation(db, job.observationId), analysis: context.analysisFor(job), diffs: history.map((candidate) => diffObservations(candidate, job)), inferences, lineageEdges, events });
       }
       if (url.pathname === "/" || url.pathname === "/index.html") return new Response(await Bun.file(`${import.meta.dir}/ui/index.html`).text(), { headers: { "content-type": "text/html; charset=utf-8" } });
       if (url.pathname === "/styles.css") return new Response(await Bun.file(`${import.meta.dir}/ui/styles.css`).text(), { headers: { "content-type": "text/css; charset=utf-8" } });
