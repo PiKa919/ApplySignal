@@ -1,0 +1,11 @@
+.git
+.worktrees
+node_modules
+.env
+.env.*
+!.env.example
+data
+artifacts
+dist
+Dockerfile
+render.yaml

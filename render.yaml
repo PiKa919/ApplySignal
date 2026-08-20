@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: applysignal
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/summary
+    envVars:
+      - key: APPLYSIGNAL_DB
+        value: /tmp/applysignal.db

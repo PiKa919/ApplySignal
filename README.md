@@ -124,6 +124,19 @@ Bright Data Scraper Studio is used to generate and approve collector code, inclu
 
 Codex/ChatGPT was used for development assistance, debugging, implementation review, and test generation. Architecture decisions, collector behavior, validation rules, and submitted code remain participant-reviewed. Bright Data Scraper Studio's AI workflow was used at the collector boundary, including the documented review-gated healing flow.
 
+## Hosted demo
+
+The recommended deployment target is Render because ApplySignal is a Bun HTTP server with a SQLite-backed local snapshot. [`render.yaml`](render.yaml) and [`Dockerfile`](Dockerfile) provide a direct Docker deployment; the hosted container seeds the controlled fixture so the public demo has deterministic evidence without publishing the local live database. Vercel would require a serverless adapter and a different persistence strategy.
+
+The repository includes two GitHub Actions workflows:
+
+- `ApplySignal CI` runs tests, builds, the credit-free health demo, fixture audit, and formatting checks on pushes and pull requests.
+- `Bright Data collector` is manual-only. It defaults to ordinary HTTP preflight and requires both the exact `RUN_PAID_COLLECTION` confirmation and the `BRIGHTDATA_API_KEY` repository secret before a paid collector run can occur. Configure a `brightdata-paid` environment if reviewer approval is desired.
+
+## Contributors
+
+- Ankit Das (PiKa919)
+
 ## Credit-aware collection policy
 
 Collector creation and live runs are paid external actions. The project keeps one completed collector per target, prefers scoped detail pages or small boards when full-board generation is unreliable, applies a minimum-row guard, and does not rerun a target solely for confirmation. A run handed to Bright Data batch mode is treated as pending until output is returned; it is not retriggered automatically after a local poll is stopped.
