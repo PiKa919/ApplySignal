@@ -289,9 +289,19 @@ test("job detail exposes persisted lifecycle events as history evidence", async 
   expect(await response.json()).toMatchObject({ events: [expect.objectContaining({ eventType: "NEWLY_OBSERVED", afterObservationId: "obs-after" })] });
 });
 
+test("job detail exposes persisted lineage edges for the selected observation", async () => {
+  const db = createDatabase(":memory:");
+  saveObservation(db, { observationId: "obs-new", sourceId: "zfh", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
+  saveInference(db, { type: "possible_repost", confidence: 0.9, signals: ["same title"], observationIds: ["obs-old", "obs-new"] });
+  const response = await createAppServer(db).fetch(new Request("http://local/api/jobs/obs-new"));
+  expect(await response.json()).toMatchObject({ lineageEdges: [expect.objectContaining({ fromObservationId: "obs-old", toObservationId: "obs-new", relation: "possible_repost" })] });
+});
+
 test("job detail UI labels persisted lifecycle events separately from inferences", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
-  expect(await response.text()).toContain("PERSISTED LIFECYCLE EVENTS");
+  const body = await response.text();
+  expect(body).toContain("PERSISTED LIFECYCLE EVENTS");
+  expect(body).toContain("PERSISTED LINEAGE EDGES");
 });
 
 test("job detail exposes the structured application observation", async () => {

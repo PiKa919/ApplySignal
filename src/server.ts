@@ -73,7 +73,8 @@ export function createAppServer(db: Database) {
         const history = (context.jobsBySource.get(job.sourceId) ?? []).filter((candidate) => candidate.observationId !== job.observationId).slice(0, 5);
         const inferences = history.map((candidate) => inferPostingRelationship(candidate, job)).filter((inference) => inference !== null);
         const events = listPostingEvents(db).filter((event) => event.sourceId === job.sourceId && (event.afterObservationId === job.observationId || event.beforeObservationId === job.observationId));
-        return json({ ...job, fields: listApplicationFields(db, job.observationId), applicationObservation: listApplicationObservation(db, job.observationId), analysis: context.analysisFor(job), diffs: history.map((candidate) => diffObservations(candidate, job)), inferences, events });
+        const lineageEdges = listLineageEdges(db).filter((edge) => edge.fromObservationId === job.observationId || edge.toObservationId === job.observationId);
+        return json({ ...job, fields: listApplicationFields(db, job.observationId), applicationObservation: listApplicationObservation(db, job.observationId), analysis: context.analysisFor(job), diffs: history.map((candidate) => diffObservations(candidate, job)), inferences, lineageEdges, events });
       }
       if (url.pathname === "/" || url.pathname === "/index.html") return new Response(await Bun.file(`${import.meta.dir}/ui/index.html`).text(), { headers: { "content-type": "text/html; charset=utf-8" } });
       if (url.pathname === "/styles.css") return new Response(await Bun.file(`${import.meta.dir}/ui/styles.css`).text(), { headers: { "content-type": "text/css; charset=utf-8" } });
