@@ -10,6 +10,8 @@ This is a copy-paste draft for the official hackathon form. It is not a claim th
 
 **Demo video:** https://raw.githubusercontent.com/PiKa919/ApplySignal/main/artifacts/applysignal-demo-2026-08-20.mp4
 
+**Hosted demo:** https://applysignal.onrender.com/
+
 ## Short description
 
 ApplySignal is candidate-side career intelligence that compares what a public job listing discloses with what its public application flow asks from a candidate. It keeps freshness, transparency, application burden, lifecycle, and source confidence as separate evidence-backed signals instead of collapsing them into a legitimacy or “worth applying” score.
@@ -49,7 +51,7 @@ Codex/ChatGPT assisted with development, debugging, review, and test generation.
 
 ## Final operator checklist
 
-- [ ] Connect the Render account and deploy the Blueprint.
-- [ ] Confirm the final hosted URL.
+- [x] Connect the Render account and deploy the Blueprint.
+- [x] Confirm the final hosted URL: https://applysignal.onrender.com/
 - [ ] Paste the repository, demo URL, description, and Scraper Studio section into the official form.
 - [ ] Add `BRIGHTDATA_API_KEY` only as a GitHub Actions secret if a paid run is deliberately authorized.

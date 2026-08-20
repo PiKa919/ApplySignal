@@ -39,9 +39,10 @@ The bounded public application collector uses the same preflight boundary; it ne
 
 ## 4. External submission checklist
 
-These items are intentionally not claimed as completed by the local repository:
+These items reflect the current external handoff state:
 
-- [ ] Public repository URL configured and verified. Current workspace has no Git remote and no matching existing owned repository was found during read-only inspection.
+- [x] Public repository URL configured and verified: https://github.com/PiKa919/ApplySignal.
+- [x] Hosted demo deployed and verified on Render: https://applysignal.onrender.com/. Runtime evidence is in [`render-deployment-2026-08-20.md`](render-deployment-2026-08-20.md).
 - [x] Demo video URL recorded and verified in the public repository: [`artifacts/applysignal-demo-2026-08-20.mp4`](https://github.com/PiKa919/ApplySignal/raw/main/artifacts/applysignal-demo-2026-08-20.mp4). It is a fixture-only UI walkthrough; the final submission should add the Bright Data terminal workflow if a narrated recording is required.
 - [ ] Final submission form completed with the bounded source-coverage language from [`submission-readiness.md`](submission-readiness.md). As checked on 2026-08-20, the form is open through August 23, 2026 and asks for the repository, demo video, project description, and how Scraper Studio was used: [official submission form](https://forms.gle/iQf2SjHQViSJaRAv7).
-- [ ] AI assistance disclosure retained in the public README and demo.
+- [x] AI assistance disclosure retained in the public README and demo.

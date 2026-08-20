@@ -35,7 +35,7 @@ The defensible claim is:
 
 It is not defensible to claim that all eight proposed career sites produced healthy live collectors. The source catalog, dashboard, and evidence files preserve that limitation visibly.
 
-The local demo runbook is [`demo-runbook.md`](demo-runbook.md). The official hackathon page says the submission form is open through August 23, 2026 and requires a repository, demo video, project description, and an explanation of how Scraper Studio was used. A public repository URL and demo-video URL are external submission artifacts and are not verified in this workspace. Read-only GitHub inspection found no configured Git remote and no matching existing owned repository; publication still requires an explicit repository choice.
+The local demo runbook is [`demo-runbook.md`](demo-runbook.md). The official hackathon page says the submission form is open through August 23, 2026 and requires a repository, demo video, project description, and an explanation of how Scraper Studio was used. The public repository and hosted Render demo are now verified; form submission itself remains an external action and is not claimed here.
 
 ## Verification
 
@@ -48,13 +48,24 @@ bun build src/cli/run-collector.ts --target bun --outdir /tmp/applysignal-run-bu
 git diff --check
 ```
 
-Runtime smoke verification on port 3310:
+Runtime smoke verification on port 3310 and the public Render deployment:
 
 ```text
 GET /           -> 200 (4,964 bytes)
 GET /app.js     -> 200 (15,583 bytes)
 GET /api/summary -> 200 (9 catalog sources, 11 runs, 1 validation result, 404 analysis snapshots, 401 stable postings)
 GET /api/jobs    -> 200 (404 jobs)
+
+Public Render verification:
+
+```text
+https://applysignal.onrender.com/           -> 200 (ApplySignal HTML)
+https://applysignal.onrender.com/app.js     -> 200
+https://applysignal.onrender.com/api/summary -> 200 (9 catalog sources, 3 runs, 10 analyses)
+https://applysignal.onrender.com/api/jobs    -> 200 (10 jobs)
+```
+
+Detailed hosted evidence is recorded in [`render-deployment-2026-08-20.md`](render-deployment-2026-08-20.md).
 ```
 
 The existing SQLite database now opens with 9 persisted source records, 401 posting records linked to 404 observations, 404 analysis snapshots with stable posting IDs, and an empty lineage-edge table; no historical repost inference rows were present to migrate. The job-detail API and UI separately expose any persisted lineage edges alongside lifecycle events and bounded inferences.

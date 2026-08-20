@@ -126,7 +126,7 @@ Codex/ChatGPT was used for development assistance, debugging, implementation rev
 
 ## Hosted demo
 
-The recommended deployment target is Render because ApplySignal is a Bun HTTP server with a SQLite-backed local snapshot. [`render.yaml`](render.yaml) and [`Dockerfile`](Dockerfile) provide a direct Docker deployment; the hosted container seeds the controlled fixture so the public demo has deterministic evidence without publishing the local live database. Vercel would require a serverless adapter and a different persistence strategy.
+The hosted demo is available at [applysignal.onrender.com](https://applysignal.onrender.com/). Render is the supported deployment target because ApplySignal is a Bun HTTP server with a SQLite-backed local snapshot. [`render.yaml`](render.yaml) and [`Dockerfile`](Dockerfile) provide a direct Docker deployment; the hosted container seeds the controlled fixture so the public demo has deterministic evidence without publishing the local live database. Vercel would require a serverless adapter and a different persistence strategy.
 
 The repository includes two GitHub Actions workflows:
 
