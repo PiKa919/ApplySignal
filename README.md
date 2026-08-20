@@ -133,6 +133,10 @@ The repository includes two GitHub Actions workflows:
 - `ApplySignal CI` runs tests, builds, the credit-free health demo, fixture audit, and formatting checks on pushes and pull requests.
 - `Bright Data collector` is manual-only. It defaults to ordinary HTTP preflight and requires both the exact `RUN_PAID_COLLECTION` confirmation and the `BRIGHTDATA_API_KEY` repository secret before a paid collector run can occur. Configure a `brightdata-paid` environment if reviewer approval is desired.
 
+## Demo walkthrough
+
+The repository also includes a short fixture-only UI walkthrough: [download the ApplySignal demo video](artifacts/applysignal-demo-2026-08-20.mp4). It shows the overview, Job Evidence, Source Health, and Compare surfaces without exposing credentials or candidate data.
+
 ## Contributors
 
 - Ankit Das (PiKa919)
