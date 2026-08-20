@@ -8,3 +8,9 @@ test("hosted container does not seed hardcoded fixture observations", async () =
   expect(dockerfile).toContain("data/applysignal.db");
   expect(dockerignore).toContain("!data/applysignal.db");
 });
+
+test("Render points at the live database shipped in the image", async () => {
+  const renderYaml = await readFile(new URL("../render.yaml", import.meta.url), "utf8");
+  expect(renderYaml).toContain("value: /app/data/applysignal.db");
+  expect(renderYaml).not.toContain("value: /tmp/applysignal.db");
+});

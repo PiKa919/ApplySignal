@@ -10,4 +10,4 @@ services:
     healthCheckPath: /api/summary
     envVars:
       - key: APPLYSIGNAL_DB
-        value: /tmp/applysignal.db
+        value: /app/data/applysignal.db
