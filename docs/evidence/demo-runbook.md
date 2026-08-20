@@ -42,7 +42,7 @@ The bounded public application collector uses the same preflight boundary; it ne
 These items reflect the current external handoff state:
 
 - [x] Public repository URL configured and verified: https://github.com/PiKa919/ApplySignal.
-- [x] Hosted demo deployed and verified on Render: https://applysignal.onrender.com/. Runtime evidence is in [`render-deployment-2026-08-20.md`](render-deployment-2026-08-20.md).
+- [ ] Hosted demo verified after the live-snapshot rollout on Render: https://applysignal.onrender.com/. Deployment status is in [`render-deployment-2026-08-20.md`](render-deployment-2026-08-20.md).
 - [x] Demo video URL recorded and verified in the public repository: [`artifacts/applysignal-demo-2026-08-20.mp4`](https://github.com/PiKa919/ApplySignal/raw/main/artifacts/applysignal-demo-2026-08-20.mp4). It is a fixture-only UI walkthrough; the final submission should add the Bright Data terminal workflow if a narrated recording is required.
 - [ ] Final submission form completed with the bounded source-coverage language from [`submission-readiness.md`](submission-readiness.md). As checked on 2026-08-20, the form is open through August 23, 2026 and asks for the repository, demo video, project description, and how Scraper Studio was used: [official submission form](https://forms.gle/iQf2SjHQViSJaRAv7).
 - [x] AI assistance disclosure retained in the public README and demo.

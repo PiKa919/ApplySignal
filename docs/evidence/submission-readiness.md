@@ -61,11 +61,11 @@ Public Render verification:
 ```text
 https://applysignal.onrender.com/           -> 200 (ApplySignal HTML)
 https://applysignal.onrender.com/app.js     -> 200
-https://applysignal.onrender.com/api/summary -> 200 (9 catalog sources, 3 runs, 10 analyses)
-https://applysignal.onrender.com/api/jobs    -> 200 (10 jobs)
+https://applysignal.onrender.com/api/summary -> 200 (prior deployment; rollout pending)
+https://applysignal.onrender.com/api/jobs    -> 200 (prior deployment; 10 fixture observations)
 ```
 
-Detailed hosted evidence is recorded in [`render-deployment-2026-08-20.md`](render-deployment-2026-08-20.md).
+Detailed deployment evidence and the pending rollout are recorded in [`render-deployment-2026-08-20.md`](render-deployment-2026-08-20.md).
 ```
 
-The existing SQLite database now opens with 9 persisted source records, 401 posting records linked to 404 observations, 404 analysis snapshots with stable posting IDs, and an empty lineage-edge table; no historical repost inference rows were present to migrate. The job-detail API and UI separately expose any persisted lineage edges alongside lifecycle events and bounded inferences.
+The current live snapshot now opens with 9 persisted source records, 345 live observations, 3 live employer sources, and no fixture observations or fixture URLs. The job-detail API and UI expose the observed public listing links and per-job source-confidence signals.

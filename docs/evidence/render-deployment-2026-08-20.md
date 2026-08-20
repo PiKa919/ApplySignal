@@ -5,7 +5,7 @@
 - Blueprint: `applysignal`
 - Repository: `PiKa919/ApplySignal`
 - Branch: `main`
-- Deployed commit: `aded226` (`docs: record Vercel deployment failure`)
+- Repository commit prepared for deployment: `28ca8eb` (`fix: include live database in Docker context`)
 - Public URL: https://applysignal.onrender.com/
 - Health endpoint: https://applysignal.onrender.com/api/summary
 
@@ -13,17 +13,21 @@ The Render Blueprint uses the repository's root [`render.yaml`](../../render.yam
 
 ## Runtime verification
 
-Direct HTTP checks returned:
+The repository now contains a checked-in live snapshot and the Docker image is configured to deploy it with live-only filtering. The latest GitHub Actions run passed tests, Bun builds, the Docker build, and the fixture audit. The public service still needs to complete its rollout from the prior image; until then, its API remains an old deployment and must not be treated as current evidence.
+
+The Render service is configured for commit-triggered deployment so the validated GitHub commit is not held behind Render's CI-check detection.
+
+Current direct HTTP check:
 
 | Route | Result |
 | --- | --- |
 | `/` | `200`, ApplySignal HTML |
 | `/app.js` | `200`, hosted browser bundle |
-| `/api/summary` | `200`, 9 catalog sources, 3 runs, 10 analyses |
-| `/api/jobs` | `200`, 10 recorded jobs |
+| `/api/summary` | `200`, old deployment still serving prior fixture-backed state |
+| `/api/jobs` | `200`, old deployment still serving 10 fixture observations |
 
-A clean browser session loaded the `ApplySignal` page, rendered the Compare panel and Source Health cards, and opened Job Evidence for the controlled `Senior Platform Engineer` observation. That detail view showed freshness, transparency, application burden, Resume Re-entry Tax, raw observed fields, and public-form metadata. No browser console errors or warnings were recorded during the smoke test.
+A clean browser session previously loaded the ApplySignal page and rendered the Compare and Source Health panels. A fresh browser verification is required after the new Render image is live.
 
 ## Hosting limitation
 
-Render's free service can spin down after inactivity, so the first request may be delayed. The fixture-seeded public demo is deterministic; live Bright Data collection is not run by the hosted web process.
+Render's free service can spin down after inactivity, so the first request may be delayed. The hosted web process serves the checked-in live snapshot; Bright Data collection is intentionally not run by the hosted web process.

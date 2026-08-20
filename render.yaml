@@ -5,7 +5,8 @@ services:
     plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
-    autoDeployTrigger: checksPass
+    # GitHub Actions remains the validation gate; Render deploys the validated commit.
+    autoDeployTrigger: commit
     healthCheckPath: /api/summary
     envVars:
       - key: APPLYSIGNAL_DB
