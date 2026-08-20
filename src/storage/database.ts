@@ -82,6 +82,7 @@ CREATE TABLE IF NOT EXISTS application_fields (
 CREATE TABLE IF NOT EXISTS application_observations (
   observation_id TEXT PRIMARY KEY REFERENCES job_observations(observation_id) ON DELETE CASCADE,
   posting_id TEXT,
+  form_url TEXT,
   account_gate INTEGER,
   resume_required INTEGER,
   required_field_count INTEGER NOT NULL,
@@ -194,8 +195,9 @@ function backfillPostings(db: Database): void {
 
 function backfillStableRelationshipIds(db: Database): void {
   db.exec(`UPDATE application_observations
-    SET posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = application_observations.observation_id)
-    WHERE posting_id IS NULL`);
+    SET posting_id = COALESCE(posting_id, (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = application_observations.observation_id)),
+        form_url = COALESCE(form_url, (SELECT application_url FROM job_observations WHERE job_observations.observation_id = application_observations.observation_id))
+    WHERE posting_id IS NULL OR form_url IS NULL`);
   db.exec(`UPDATE analysis_snapshots
     SET posting_id = (SELECT posting_id FROM job_observations WHERE job_observations.observation_id = analysis_snapshots.observation_id)
     WHERE posting_id IS NULL`);
@@ -225,6 +227,7 @@ export function createDatabase(path: string): Database {
     "ALTER TABLE sources ADD COLUMN oracle_id TEXT",
     "ALTER TABLE sources ADD COLUMN oracle_url TEXT",
     "ALTER TABLE application_observations ADD COLUMN posting_id TEXT",
+    "ALTER TABLE application_observations ADD COLUMN form_url TEXT",
     "ALTER TABLE analysis_snapshots ADD COLUMN posting_id TEXT",
     "ALTER TABLE lineage_edges ADD COLUMN from_posting_id TEXT",
     "ALTER TABLE lineage_edges ADD COLUMN to_posting_id TEXT",

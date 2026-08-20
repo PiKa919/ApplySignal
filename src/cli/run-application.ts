@@ -61,7 +61,7 @@ export async function runApplicationCollectorFromEnv(env: ApplicationCollectorEn
       saveApplicationRun(db, request, result, "quarantined", 0, "quarantined");
       throw new Error("application collector returned no public form field metadata");
     }
-    const fieldCount = ingestApplicationFields(db, request.observationId, payload as { account_required?: boolean | null; application_form_fields?: unknown[] });
+    const fieldCount = ingestApplicationFields(db, request.observationId, payload as { account_required?: boolean | null; application_form_fields?: unknown[] }, request.url ?? null);
     if (fieldCount === 0) {
       saveApplicationRun(db, request, result, "quarantined", 0, "quarantined");
       throw new Error("application collector returned zero valid public form fields");

@@ -310,6 +310,7 @@ test("job detail exposes the structured application observation", async () => {
   const db = createDatabase(":memory:");
   saveObservation(db, { observationId: "obs-application", sourceId: "zfh", title: "Backend", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 1 } as any);
   saveApplicationObservation(db, "obs-application", {
+    formUrl: "https://example.test/jobs/backend/apply",
     accountGate: true,
     resumeRequired: true,
     requiredFieldCount: 1,
@@ -321,13 +322,14 @@ test("job detail exposes the structured application observation", async () => {
     manualHistoryFields: [],
   });
   const response = await createAppServer(db).fetch(new Request("http://local/api/jobs/obs-application"));
-  expect(await response.json()).toMatchObject({ applicationObservation: { accountGate: true, resumeRequired: true, attachmentCount: 1 } });
+  expect(await response.json()).toMatchObject({ applicationObservation: { formUrl: "https://example.test/jobs/backend/apply", accountGate: true, resumeRequired: true, attachmentCount: 1 } });
 });
 
 test("job detail UI labels the public application observation summary", async () => {
   const response = await createAppServer(createDatabase(":memory:")).fetch(new Request("http://local/app.js"));
   const body = await response.text();
   expect(body).toContain("APPLICATION OBSERVATION");
+  expect(body).toContain("PUBLIC FORM");
   expect(body).toContain("LONG ANSWERS");
 });
 

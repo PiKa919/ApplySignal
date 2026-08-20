@@ -16,7 +16,7 @@ Its central view is the Reciprocity Gap: an explainable comparison between discl
 
 Application analysis also exposes a Resume Re-entry Tax: the count and severity of public employment, education, compensation-history, experience, and current-employer fields requested in addition to a resume.
 
-The application detail view also stores a structured public-form observation: account-gate state when observable, resume requirement, required/optional/unknown counts, custom-question and long-answer counts, attachments, and deduplicated manual-history labels. It never stores candidate-entered values. The current Zerodha application observation is documented in `docs/evidence/application-observation-2026-08-20.md`.
+The application detail view also stores a structured public-form observation: the public form evidence URL, account-gate state when observable, resume requirement, required/optional/unknown counts, custom-question and long-answer counts, attachments, and deduplicated manual-history labels. It never stores candidate-entered values. The current Zerodha application observation is documented in `docs/evidence/application-observation-2026-08-20.md`.
 
 Stable posting records own cross-observation history. Version-specific observations, lifecycle events, analysis snapshots, and possible-repost lineage retain their observation IDs as evidence while linking back to the stable posting ID; inferred lineage never merges or rewrites observed facts.
 

@@ -11,7 +11,7 @@ test("ingests visible application fields without collecting candidate values", (
       { field_label: "Current ctc", normalized_category: "compensation_history", is_required: true, input_type: "text" },
       { field_label: "Notice Period", normalized_category: "availability", is_required: true, input_type: "text" },
     ],
-  });
+  }, "https://example.test/jobs/backend/apply");
   expect(result).toBe(2);
   expect(listApplicationFields(db, "obs-backend")).toEqual([
     { label: "Current ctc", category: "compensation_history", required: true },
@@ -29,8 +29,9 @@ test("summarizes account gate and application burden from public field metadata"
       { field_label: "Current CTC", normalized_category: "compensation_history", is_required: true, input_type: "text" },
       { field_label: "Why do you want this role?", normalized_category: "process", is_required: false, input_type: "textarea", is_custom_question: true },
     ],
-  });
+  }, "https://example.test/jobs/backend/apply");
   expect(listApplicationObservation(db, "obs-application")).toEqual({
+    formUrl: "https://example.test/jobs/backend/apply",
     accountGate: true,
     resumeRequired: true,
     requiredFieldCount: 2,

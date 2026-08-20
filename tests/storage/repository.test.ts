@@ -53,6 +53,7 @@ test("round-trips structured application observations without candidate values",
   const db = createDatabase(":memory:");
   saveObservation(db, { observationId: "obs-application", sourceId: "zfh", observedAt: "2026-08-20T00:00:00.000Z", title: "Backend" } as any);
   saveApplicationObservation(db, "obs-application", {
+    formUrl: "https://example.test/jobs/backend/apply",
     accountGate: true,
     resumeRequired: true,
     requiredFieldCount: 2,
@@ -65,6 +66,7 @@ test("round-trips structured application observations without candidate values",
   }, "2026-08-20T00:00:00.000Z");
   expect(db.query("SELECT posting_id as postingId FROM application_observations WHERE observation_id = ?").get("obs-application")).toEqual({ postingId: "zfh::obs-application" });
   expect(listApplicationObservation(db, "obs-application")).toEqual({
+    formUrl: "https://example.test/jobs/backend/apply",
     accountGate: true,
     resumeRequired: true,
     requiredFieldCount: 2,

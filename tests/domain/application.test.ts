@@ -4,6 +4,7 @@ import { summarizeApplicationObservation } from "../../src/domain/application";
 test("summarizes public application burden without candidate values", () => {
   const result = summarizeApplicationObservation({
     accountRequired: true,
+    formUrl: "https://example.test/jobs/backend/apply",
     fields: [
       { label: "Resume", category: "resume", required: true, inputType: "file", isAttachment: true },
       { label: "Current CTC", category: "compensation_history", required: true, inputType: "text" },
@@ -13,6 +14,7 @@ test("summarizes public application burden without candidate values", () => {
   });
 
   expect(result).toEqual({
+    formUrl: "https://example.test/jobs/backend/apply",
     accountGate: true,
     resumeRequired: true,
     requiredFieldCount: 2,
@@ -27,6 +29,7 @@ test("summarizes public application burden without candidate values", () => {
 
 test("keeps form completeness unknown when no public fields were observed", () => {
   expect(summarizeApplicationObservation({ accountRequired: null, fields: [] })).toMatchObject({
+    formUrl: null,
     accountGate: null,
     resumeRequired: null,
     requiredFieldCount: 0,

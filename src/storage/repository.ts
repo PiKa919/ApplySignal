@@ -205,13 +205,14 @@ export function listApplicationFields(db: Database, observationId: string): Appl
 export function saveApplicationObservation(db: Database, observationId: string, summary: ApplicationObservationSummary, observedAt = new Date().toISOString()): void {
   const postingId = requirePostingId(db, observationId);
   db.query(`INSERT OR REPLACE INTO application_observations
-    (observation_id, posting_id, account_gate, resume_required, required_field_count, optional_field_count,
+    (observation_id, posting_id, form_url, account_gate, resume_required, required_field_count, optional_field_count,
      unknown_field_count, custom_question_count, long_answer_count, attachment_count,
      manual_history_fields_json, observed_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
     .run(
       observationId,
       postingId,
+      summary.formUrl,
       summary.accountGate === null ? null : Number(summary.accountGate),
       summary.resumeRequired === null ? null : Number(summary.resumeRequired),
       summary.requiredFieldCount,
@@ -226,7 +227,7 @@ export function saveApplicationObservation(db: Database, observationId: string, 
 }
 
 export function listApplicationObservation(db: Database, observationId: string): ApplicationObservationSummary | null {
-  const row = db.query(`SELECT account_gate as accountGate, resume_required as resumeRequired,
+  const row = db.query(`SELECT form_url as formUrl, account_gate as accountGate, resume_required as resumeRequired,
     required_field_count as requiredFieldCount, optional_field_count as optionalFieldCount,
     unknown_field_count as unknownFieldCount, custom_question_count as customQuestionCount,
     long_answer_count as longAnswerCount, attachment_count as attachmentCount,
@@ -236,6 +237,7 @@ export function listApplicationObservation(db: Database, observationId: string):
     | null;
   if (!row) return null;
   return {
+    formUrl: row.formUrl,
     accountGate: row.accountGate === null ? null : row.accountGate === 1,
     resumeRequired: row.resumeRequired === null ? null : row.resumeRequired === 1,
     requiredFieldCount: row.requiredFieldCount,

@@ -10,6 +10,7 @@ export interface ApplicationFieldSignal {
 }
 
 export interface ApplicationObservationSummary {
+  formUrl: string | null;
   accountGate: boolean | null;
   resumeRequired: boolean | null;
   requiredFieldCount: number;
@@ -23,6 +24,7 @@ export interface ApplicationObservationSummary {
 
 export interface ApplicationSummaryInput {
   accountRequired: boolean | null;
+  formUrl?: string | null;
   fields: ApplicationFieldSignal[];
 }
 
@@ -45,6 +47,7 @@ export function summarizeApplicationObservation(input: ApplicationSummaryInput):
     .map((field) => field.label))];
 
   return {
+    formUrl: input.formUrl ?? null,
     accountGate: input.accountRequired,
     resumeRequired: fields.length === 0 ? null : fields.some((field) => field.category === "resume"),
     requiredFieldCount: fields.filter((field) => field.required === true).length,

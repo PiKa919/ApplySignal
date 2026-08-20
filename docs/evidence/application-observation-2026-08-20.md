@@ -1,6 +1,7 @@
 # Public application observation — Zerodha Fund House — 2026-08-20
 
 - Collector: `c_mt0h6zkc2od06t5olc` (existing completed application-form collector)
+- Public form evidence URL is persisted with the aggregate application observation; only public labels and metadata are retained.
 - Target: one public backend-role application URL
 - Collection strategy: one exact detail-page run; no board-wide rerun or retry
 - Returned public field descriptors: 17

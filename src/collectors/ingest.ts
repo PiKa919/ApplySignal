@@ -98,7 +98,7 @@ interface RawApplicationField {
 
 const isCategory = (value: string): value is ReciprocityCategory => (RECIPROCITY_CATEGORIES as readonly string[]).includes(value);
 
-export function ingestApplicationFields(db: Database, observationId: string, payload: { account_required?: boolean | null; application_form_fields?: RawApplicationField[] }): number {
+export function ingestApplicationFields(db: Database, observationId: string, payload: { account_required?: boolean | null; application_form_fields?: RawApplicationField[] }, formUrl: string | null = null): number {
   const signals: ApplicationFieldSignal[] = (payload.application_form_fields ?? [])
     .filter((field): field is RawApplicationField & { field_label: string; normalized_category: string } => Boolean(field.field_label && field.normalized_category && isCategory(field.normalized_category)))
     .map((field) => ({
@@ -111,7 +111,7 @@ export function ingestApplicationFields(db: Database, observationId: string, pay
     }));
   const fields: ApplicationFieldObservation[] = signals.map(({ label, category, required }) => ({ label, category, required }));
   saveApplicationFields(db, observationId, fields);
-  saveApplicationObservation(db, observationId, summarizeApplicationObservation({ accountRequired: payload.account_required ?? null, fields: signals }));
+  saveApplicationObservation(db, observationId, summarizeApplicationObservation({ accountRequired: payload.account_required ?? null, formUrl, fields: signals }));
   const observation = listLatestObservations(db).find((candidate) => candidate.observationId === observationId);
   if (observation) {
     const previous = listLatestObservations(db, observation.sourceId)
