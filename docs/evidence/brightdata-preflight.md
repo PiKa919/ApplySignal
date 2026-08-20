@@ -12,6 +12,23 @@
 
 This is evidence about the authenticated CLI pipeline catalog, not proof that Bright Data's broader 660+ web-scraper library has no matching template. The installed CLI exposes `pipelines list`, but it does not expose a Scrapers Library/Marketplace search command; `brightdata scraper --help` exposes only `create`, `run`, `heal`, and `approve`. Bright Data's official documentation says the Scrapers Library is browsed from the web dashboard and that Scraper Studio is for targets not found in the library ([library quickstart](https://docs.brightdata.com/datasets/scrapers/scrapers-library/quickstart), [Scraper Studio FAQ](https://docs.brightdata.com/datasets/scraper-studio/faqs)). The public FAQ page did not match Visa, Cadence, BrowserStack, Meesho, Zerodha Fund House, CRED, Postman, or Razorpay by name, but that page is not a substitute for an authenticated per-target dashboard lookup. The final submission must retain source-level Marketplace/library evidence before claiming a target is uncovered.
 
+## Authenticated Scrapers Library lookup — 2026-08-20
+
+Using the authenticated Firefox Bright Data Control Panel, `Scrapers → Scrapers Library → Search domains`, each target domain returned the UI result `No results found`:
+
+| Target domain searched | Library result |
+| --- | --- |
+| `browserstack.wd3.myworkdayjobs.com` | No results found |
+| `www.meesho.io` | No results found |
+| `careers.cred.club` | No results found |
+| `www.postman.com` | No results found |
+| `visa.wd5.myworkdayjobs.com` | No results found |
+| `cadence.wd1.myworkdayjobs.com` | No results found |
+| `careers.zerodhafundhouse.com` | No results found |
+| `razorpay.com` | No results found |
+
+This is source-level dashboard evidence that these exact domains did not have a matching library result at lookup time. It does not authorize a paid run by itself; target preflight, collector health gates, cooldown policy, and the existing collector-generation evidence still apply. The lookup itself spent no Bright Data collection credits.
+
 ## Zero-credit public URL preflight — 2026-08-20
 
 `bun run preflight` performs an ordinary HTTP reachability check before any Bright Data collector is considered. It follows redirects, checks the expected host, records status/content type/body size, filters block indicators out of scripts/styles to avoid false positives, and always reports `brightDataCalls: 0`.
@@ -22,6 +39,7 @@ This is evidence about the authenticated CLI pipeline catalog, not proof that Br
 | CRED | HTTP 200, expected host, 54,616 bytes, no visible-text block indicators | Public page reachable; existing collector/detail extraction remains unresolved |
 | Meesho | HTTP 403 with an explicit Access Denied body | Transport/access failure; no collector retry triggered |
 | Postman | HTTP 200, expected host, 207,741 bytes, no block indicators | Branded page reachable; existing extraction remains partial |
+| Razorpay | HTTP 200, expected host, 950,179 bytes, no block indicators | Branded page reachable; the known-good Greenhouse collector was still inside cooldown |
 
 Reachability is deliberately not promoted to a live source claim: the health gate and completed Scraper Studio output are still required.
 
@@ -35,7 +53,7 @@ Reachability is deliberately not promoted to a live source claim: the health gat
 | Cadence | Live scoped detail | One public Workday detail collector completed; full-board generation remains unresolved |
 | BrowserStack | Unresolved generation | `c_mt0iq7oysxok3r6q4` reached preview picker but did not complete during bounded polling |
 | Meesho | Failed generation | Two custom Scraper Studio generation attempts failed; no live data claimed |
-| CRED | Unresolved after bounded detail probe | Candidate-specific Marketplace/library lookup still required; one public Lever detail attempt returned zero rows and was quarantined |
+| CRED | Unresolved after bounded detail probe | Authenticated exact-domain library lookup returned no result; one public Lever detail attempt returned zero rows and was quarantined |
 | Postman | Partial validation source | 50 normalized Scraper Studio IDs matched 111 public Greenhouse IDs; extraction remains incomplete |
 | Razorpay | Keep as live candidate | Direct Greenhouse board collector completed and returned 26 public listing rows |
 
