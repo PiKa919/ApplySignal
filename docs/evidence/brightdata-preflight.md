@@ -45,6 +45,24 @@ The normal `run:collector` path now invokes the same check after cooldown permit
 
 Reachability is deliberately not promoted to a live source claim: the health gate and completed Scraper Studio output are still required.
 
+## Full source-set sweep — 2026-08-20 07:49 UTC
+
+The same zero-credit preflight was rerun against all eight planned targets plus the Palantir fallback after the automatic `run:collector` guard was added. Seven of the eight planned targets were reachable over ordinary HTTP; Meesho returned an explicit `403 Access Denied`. The Palantir fallback was also reachable. This sweep changed no collector state and made no Bright Data collection calls.
+
+| Source | Result | Bright Data calls | Next action |
+| --- | --- | ---: | --- |
+| Zerodha Fund House | HTTP 200, 47,557 bytes | 0 | Existing live collector; cooldown applies |
+| Palantir Lever | HTTP 200, 971,576 bytes | 0 | Existing live fallback; cooldown applies |
+| Visa Workday | HTTP 200, 7,521 bytes | 0 | Keep scoped detail; do not retry stalled board generation |
+| Cadence Workday | HTTP 200, 7,829 bytes | 0 | Keep scoped detail; do not retry stalled board generation |
+| BrowserStack Workday | HTTP 200, 7,293 bytes | 0 | Reachable but existing collector remains unresolved; no paid retry |
+| Meesho Careers | HTTP 403, `Access Denied`, 371 bytes | 0 | Keep failed-generation state; no retry |
+| CRED Careers | HTTP 200, 67,017 bytes | 0 | Reachable but existing extraction remains unresolved; no paid retry |
+| Postman Careers | HTTP 200, 207,741 bytes | 0 | Retain partial scraper/oracle validation |
+| Razorpay Careers | HTTP 200, 950,282 bytes | 0 | Existing live Greenhouse collector; cooldown applies |
+
+Reachability alone is insufficient to promote BrowserStack or CRED: both still lack a completed, healthy Scraper Studio output. The credit-efficient decision is to preserve their unresolved catalog states rather than spend a run against collectors that have not produced usable preview/code evidence.
+
 ## Candidate decisions
 
 | Candidate | Current decision | Evidence/status |
