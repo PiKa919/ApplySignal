@@ -22,4 +22,6 @@ test("scheduled research worker is bounded and authenticated separately", async 
   expect(workflow).toContain("APPLYSIGNAL_RESEARCH_MAX_ITEMS: \"1\"");
   expect(workflow).toContain("BRIGHTDATA_RESEARCH_COLLECTOR_ID");
   expect(workflow).toContain("brightdata login --api-key");
+  expect(workflow).toContain("BRIGHTDATA_API_KEY is not configured");
+  expect(workflow).toContain("SKIP_RESEARCH_QUEUE=true");
 });
