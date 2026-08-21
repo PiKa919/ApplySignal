@@ -12,6 +12,7 @@
     "preflight": "bun run src/cli/preflight.ts",
     "heal:collector": "bun run src/cli/heal-collector.ts",
     "run:collector": "bun run src/cli/run-collector.ts",
-    "run:application": "bun run src/cli/run-application.ts"
+    "run:application": "bun run src/cli/run-application.ts",
+    "run:research-queue": "bun run src/cli/run-research-queue.ts"
   }
 }

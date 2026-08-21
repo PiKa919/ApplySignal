@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS job_observations (
   observed_at TEXT NOT NULL,
   source_job_id TEXT,
   title TEXT,
+  company_name TEXT,
   location TEXT,
   employment_type TEXT,
   posted_date TEXT,
@@ -165,6 +166,21 @@ CREATE TABLE IF NOT EXISTS heal_events (
   repaired_run_id TEXT,
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS research_queue (
+  queue_id TEXT PRIMARY KEY,
+  canonical_url TEXT NOT NULL UNIQUE,
+  status TEXT NOT NULL,
+  attempts INTEGER NOT NULL DEFAULT 0,
+  next_attempt_at TEXT,
+  submitted_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  processing_started_at TEXT,
+  completed_at TEXT,
+  observation_id TEXT,
+  last_error TEXT,
+  evidence_json TEXT NOT NULL DEFAULT '{}'
+);
 `;
 
 function backfillPostings(db: Database): void {
@@ -220,6 +236,7 @@ export function createDatabase(path: string): Database {
     "ALTER TABLE scrape_runs ADD COLUMN health_status TEXT NOT NULL DEFAULT 'healthy'",
     "ALTER TABLE scrape_runs ADD COLUMN health_report TEXT NOT NULL DEFAULT '{}'",
     "ALTER TABLE job_observations ADD COLUMN flags_json TEXT NOT NULL DEFAULT '{}'",
+    "ALTER TABLE job_observations ADD COLUMN company_name TEXT",
     "ALTER TABLE job_observations ADD COLUMN posting_id TEXT",
     "ALTER TABLE scrape_runs ADD COLUMN run_kind TEXT NOT NULL DEFAULT 'listing'",
     "ALTER TABLE sources ADD COLUMN source_family TEXT NOT NULL DEFAULT 'custom'",

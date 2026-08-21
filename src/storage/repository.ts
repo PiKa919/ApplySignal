@@ -10,6 +10,91 @@ import { classifyPostingFlags } from "../domain/normalize";
 const DEFAULT_FLAGS = { explicitEvergreen: false, evergreenLike: false, talentPool: false, multipleOpenings: false } as const;
 const LINEAGE_ALGORITHM_VERSION = "repost-v1";
 
+export type ResearchQueueStatus = "pending" | "processing" | "completed" | "failed";
+
+export interface ResearchQueueItem {
+  id: string;
+  url: string;
+  status: ResearchQueueStatus;
+  attempts: number;
+  nextAttemptAt: string | null;
+  submittedAt: string;
+  updatedAt: string;
+  processingStartedAt: string | null;
+  completedAt: string | null;
+  observationId: string | null;
+  lastError: string | null;
+  evidence: Record<string, unknown>;
+}
+
+export function canonicalizeResearchUrl(value: string): string {
+  let parsed: URL;
+  try { parsed = new URL(value.trim()); } catch { throw new Error("A valid research URL is required"); }
+  if (parsed.protocol !== "http:" && parsed.protocol !== "https:") throw new Error("Research URL must use http or https");
+  parsed.hash = "";
+  parsed.hostname = parsed.hostname.toLowerCase();
+  parsed.pathname = parsed.pathname.replace(/\/{2,}/g, "/").replace(/\/$/, "") || "/";
+  return parsed.toString();
+}
+
+const researchQueueId = (url: string): string => `rq_${new Bun.CryptoHasher("sha256").update(url).digest("hex").slice(0, 20)}`;
+
+const hydrateResearchQueue = (row: Record<string, unknown>): ResearchQueueItem => ({
+  id: String(row.queueId),
+  url: String(row.url),
+  status: String(row.status) as ResearchQueueStatus,
+  attempts: Number(row.attempts),
+  nextAttemptAt: row.nextAttemptAt ? String(row.nextAttemptAt) : null,
+  submittedAt: String(row.submittedAt),
+  updatedAt: String(row.updatedAt),
+  processingStartedAt: row.processingStartedAt ? String(row.processingStartedAt) : null,
+  completedAt: row.completedAt ? String(row.completedAt) : null,
+  observationId: row.observationId ? String(row.observationId) : null,
+  lastError: row.lastError ? String(row.lastError) : null,
+  evidence: JSON.parse(String(row.evidenceJson || "{}")),
+});
+
+export function enqueueResearchUrl(db: Database, value: string, now = new Date().toISOString()): { item: ResearchQueueItem; duplicate: boolean } {
+  const url = canonicalizeResearchUrl(value);
+  const existing = db.query(`SELECT queue_id as queueId, canonical_url as url, status, attempts, next_attempt_at as nextAttemptAt,
+    submitted_at as submittedAt, updated_at as updatedAt, processing_started_at as processingStartedAt, completed_at as completedAt,
+    observation_id as observationId, last_error as lastError, evidence_json as evidenceJson FROM research_queue WHERE canonical_url = ?`).get(url) as Record<string, unknown> | null;
+  if (existing) return { item: hydrateResearchQueue(existing), duplicate: true };
+  const id = researchQueueId(url);
+  db.query(`INSERT INTO research_queue
+    (queue_id, canonical_url, status, attempts, next_attempt_at, submitted_at, updated_at, evidence_json)
+    VALUES (?, ?, 'pending', 0, ?, ?, ?, '{}')`).run(id, url, now, now, now);
+  return { item: listResearchQueue(db).find((item) => item.id === id)!, duplicate: false };
+}
+
+export function listResearchQueue(db: Database): ResearchQueueItem[] {
+  const rows = db.query(`SELECT queue_id as queueId, canonical_url as url, status, attempts, next_attempt_at as nextAttemptAt,
+    submitted_at as submittedAt, updated_at as updatedAt, processing_started_at as processingStartedAt, completed_at as completedAt,
+    observation_id as observationId, last_error as lastError, evidence_json as evidenceJson
+    FROM research_queue ORDER BY submitted_at DESC`).all() as Array<Record<string, unknown>>;
+  return rows.map(hydrateResearchQueue);
+}
+
+export function claimResearchQueue(db: Database, limit: number, now = new Date().toISOString()): ResearchQueueItem[] {
+  const rows = db.query(`SELECT queue_id as queueId FROM research_queue
+    WHERE status = 'pending' OR (status = 'failed' AND (next_attempt_at IS NULL OR next_attempt_at <= ?))
+    ORDER BY submitted_at ASC LIMIT ?`).all(now, limit) as Array<{ queueId: string }>;
+  const update = db.query(`UPDATE research_queue SET status = 'processing', processing_started_at = ?, updated_at = ? WHERE queue_id = ?`);
+  for (const row of rows) update.run(now, now, row.queueId);
+  const claimed = new Set(rows.map((row) => row.queueId));
+  return listResearchQueue(db).filter((item) => claimed.has(item.id));
+}
+
+export function failResearchQueueItem(db: Database, id: string, error: string, nextAttemptAt: string | null = null, now = new Date().toISOString()): void {
+  db.query(`UPDATE research_queue SET status = 'failed', attempts = attempts + 1, next_attempt_at = ?, last_error = ?, updated_at = ? WHERE queue_id = ?`)
+    .run(nextAttemptAt, error, now, id);
+}
+
+export function completeResearchQueueItem(db: Database, id: string, observationId: string, now = new Date().toISOString(), evidence: Record<string, unknown> = {}): void {
+  db.query(`UPDATE research_queue SET status = 'completed', observation_id = ?, completed_at = ?, updated_at = ?, last_error = NULL, evidence_json = ? WHERE queue_id = ?`)
+    .run(observationId, now, now, JSON.stringify(evidence), id);
+}
+
 export function listSources(db: Database): SourceCatalogEntry[] {
   const rows = db.query(`SELECT source_id as sourceId, name, url, source_family as sourceFamily,
     collector_id as collectorId, oracle_id as oracleId, oracle_url as oracleUrl,
@@ -99,10 +184,10 @@ export function saveObservation(db: Database, observation: JobObservation & { da
       current_state = excluded.current_state`)
     .run(postingId, observation.sourceId, sourcePostingKey, observation.url ?? null, observation.observedAt ?? new Date().toISOString(), observation.observedAt ?? new Date().toISOString(), "observed");
   const statement = db.query(`INSERT OR REPLACE INTO job_observations
-    (observation_id, posting_id, source_id, source_url, observed_at, source_job_id, title, location, employment_type,
+    (observation_id, posting_id, source_id, source_url, observed_at, source_job_id, title, company_name, location, employment_type,
      posted_date, posted_date_quality, closing_date, closing_date_quality, description, salary, application_url,
      url, provenance_json, source_confidence, flags_json, data_mode)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`);
   statement.run(
     observation.observationId,
     postingId,
@@ -111,6 +196,7 @@ export function saveObservation(db: Database, observation: JobObservation & { da
     observation.observedAt ?? new Date().toISOString(),
     observation.sourceJobId ?? null,
     observation.title ?? null,
+    observation.companyName ?? null,
     observation.location ?? null,
     observation.employmentType ?? null,
     observation.postedDate ?? null,
@@ -136,6 +222,7 @@ interface ObservationRow {
   observed_at: string;
   source_job_id: string | null;
   title: string | null;
+  company_name: string | null;
   location: string | null;
   employment_type: string | null;
   posted_date: string | null;
@@ -163,6 +250,7 @@ const hydrate = (row: ObservationRow): JobObservation & { dataMode: "live" | "fi
   observedAt: row.observed_at,
   sourceJobId: row.source_job_id,
   title: row.title,
+  companyName: row.company_name,
   location: row.location,
   employmentType: row.employment_type,
   postedDate: row.posted_date,

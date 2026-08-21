@@ -8,10 +8,17 @@ const compareRight = document.querySelector<HTMLSelectElement>("#compare-right")
 const compareRun = document.querySelector<HTMLButtonElement>("#compare-run")!;
 const compareResult = document.querySelector<HTMLElement>("#compare-result")!;
 const dashboardStatus = document.querySelector<HTMLElement>("#dashboard-status")!;
+const jobSort = document.querySelector<HTMLSelectElement>("#job-sort")!;
+const researchForm = document.querySelector<HTMLFormElement>("#research-form")!;
+const researchUrl = document.querySelector<HTMLInputElement>("#research-url")!;
+const researchMessage = document.querySelector<HTMLElement>("#research-message")!;
+const researchQueue = document.querySelector<HTMLElement>("#research-queue")!;
 
 type ApplicationObservation = { formUrl: string | null; accountGate: boolean | null; resumeRequired: boolean | null; requiredFieldCount: number; optionalFieldCount: number; unknownFieldCount: number; customQuestionCount: number; longAnswerCount: number; attachmentCount: number; manualHistoryFields: string[] };
 type HealthReport = { errors?: string[]; duplicateIdentityCount?: number; duplicateUrlCount?: number; paginationErrors?: string[]; distributions?: Record<string, Record<string, number>> };
-type Job = { observationId: string; sourceId: string; title: string | null; companyName: string; location: string | null; url: string | null; applicationUrl: string | null; dataMode: string; sourceConfidence: number | null; flags: { explicitEvergreen: boolean; evergreenLike: boolean; talentPool: boolean; multipleOpenings: boolean }; applicationObservation?: ApplicationObservation | null; analysis: { gapLabel: string; explanation: string; requestedFieldCount: number; disclosedCount: number; resumeReentryFieldCount: number; resumeReentryLabel: string; transparencyScore: number; transparencySignals: { key: string; label: string; points: number; observed: boolean; evidence: string | null }[]; transparencyInterpretation: string; lifecycleState: string; freshness: { precision: string; label: string; sourcePublishedAt: string | null; ageDays: number | null; ageMinDays: number | null; firstSeenAt: string } } };
+type Job = { observationId: string; sourceId: string; title: string | null; companyName: string; location: string | null; url: string | null; applicationUrl: string | null; observedAt: string; postedDate: string | null; postedDateQuality: string; dataMode: string; sourceConfidence: number | null; flags: { explicitEvergreen: boolean; evergreenLike: boolean; talentPool: boolean; multipleOpenings: boolean }; applicationObservation?: ApplicationObservation | null; analysis: { gapLabel: string; explanation: string; requestedFieldCount: number; disclosedCount: number; resumeReentryFieldCount: number; resumeReentryLabel: string; transparencyScore: number; transparencySignals: { key: string; label: string; points: number; observed: boolean; evidence: string | null }[]; transparencyInterpretation: string; lifecycleState: string; freshness: { precision: string; label: string; sourcePublishedAt: string | null; ageDays: number | null; ageMinDays: number | null; firstSeenAt: string } } };
+type SortMode = "posted-desc" | "company-asc" | "company-desc";
+type ResearchQueueItem = { id: string; url: string; status: string; attempts: number; submittedAt: string; updatedAt: string; observationId: string | null; lastError: string | null };
 
 const esc = (value: unknown) => String(value ?? "Unknown").replace(/[&<>'"]/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "'": "&#39;", '"': "&quot;" }[char]!));
 const safeHref = (value: unknown): string | null => {
@@ -23,8 +30,21 @@ const safeHref = (value: unknown): string | null => {
   }
 };
 const confidenceLabel = (value: number | null | undefined): string => typeof value === "number" && Number.isFinite(value) ? `${Math.round(value * 100)}%` : "Unknown";
-async function apiJson<T>(url: string): Promise<T> {
-  const response = await fetch(url);
+const sortJobsByPostedDate = <T extends { observationId: string; observedAt: string; postedDate: string | null; postedDateQuality: string }>(jobs: T[]): T[] => [...jobs].sort((left, right) => {
+  const leftPosted = left.postedDateQuality === "exact" && left.postedDate ? left.postedDate : null;
+  const rightPosted = right.postedDateQuality === "exact" && right.postedDate ? right.postedDate : null;
+  if (leftPosted && rightPosted) return rightPosted.localeCompare(leftPosted) || right.observedAt.localeCompare(left.observedAt) || left.observationId.localeCompare(right.observationId);
+  if (leftPosted) return -1;
+  if (rightPosted) return 1;
+  return right.observedAt.localeCompare(left.observedAt) || left.observationId.localeCompare(right.observationId);
+});
+const postedDateLabel = (job: { postedDate: string | null; postedDateQuality: string }): string => job.postedDateQuality === "exact" && job.postedDate ? `Posted · ${job.postedDate}` : "Posted date unavailable";
+const sortJobsByMode = (jobs: Job[], mode: SortMode): Job[] => mode === "posted-desc" ? sortJobsByPostedDate(jobs) : [...jobs].sort((left, right) => {
+  const companyOrder = left.companyName.localeCompare(right.companyName, undefined, { sensitivity: "base" });
+  return (mode === "company-asc" ? companyOrder : -companyOrder) || (left.title ?? "").localeCompare(right.title ?? "", undefined, { sensitivity: "base" }) || right.observedAt.localeCompare(left.observedAt);
+});
+async function apiJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(url, init);
   const body = await response.text();
   let payload: unknown = null;
   try {
@@ -38,6 +58,13 @@ async function apiJson<T>(url: string): Promise<T> {
   }
   return payload as T;
 }
+const renderResearchQueue = (items: ResearchQueueItem[]) => {
+  researchQueue.innerHTML = items.length ? items.map((item) => `<div class="research-item"><div><strong>${esc(item.url)}</strong><span class="research-status ${esc(item.status)}">${esc(item.status)}</span></div><div class="research-item-meta">${item.observationId ? `Observation ready · ${esc(item.observationId)}` : item.lastError ? `Retryable error · ${esc(item.lastError)}` : `Submitted ${esc(new Date(item.submittedAt).toLocaleString())}`}</div></div>`).join("") : `<p class="muted">No submitted job links yet.</p>`;
+};
+const loadResearchQueue = async () => {
+  try { renderResearchQueue(await apiJson<ResearchQueueItem[]>("/api/research-queue")); }
+  catch (error) { researchQueue.innerHTML = `<p class="muted">Research queue unavailable: ${esc(error instanceof Error ? error.message : "request failed")}</p>`; }
+};
 const setDashboardStatus = (message: string, kind: "loading" | "error" | "ready") => {
   dashboardStatus.className = `dashboard-status ${kind}`;
   dashboardStatus.hidden = kind === "ready";
@@ -56,6 +83,7 @@ const setLoadingState = () => {
   compareRun.disabled = true;
   compareResult.className = "compare-result empty";
   compareResult.textContent = "Loading comparison options…";
+  researchQueue.innerHTML = `<div class="loading-state" role="status">Loading submitted research links…</div>`;
 };
 const renderDashboardError = (error: unknown) => {
   const message = error instanceof Error ? error.message : "The live observation service did not respond.";
@@ -70,6 +98,7 @@ const renderDashboardError = (error: unknown) => {
   compareRun.disabled = true;
   compareResult.className = "compare-result empty";
   compareResult.textContent = "Comparison is unavailable until live observations load.";
+  researchQueue.innerHTML = `<p class="muted">Research queue unavailable.</p>`;
 };
 const renderDetailError = (error: unknown, id: string) => {
   const message = error instanceof Error ? error.message : "The observation could not be loaded.";
@@ -135,7 +164,8 @@ async function load() {
   const activeSources = catalog.filter((source) => source.status === "live" || source.status === "live_scoped");
   const boardSources = catalog.filter((source) => source.status === "live");
   const scopedSources = catalog.filter((source) => source.status === "live_scoped");
-  const liveSourceIds = new Set(jobsData.map((job) => job.sourceId));
+  const sortedJobs = sortJobsByPostedDate(jobsData);
+  const liveSourceIds = new Set(sortedJobs.map((job) => job.sourceId));
   const cards = catalog.map((source) => `<div class="health-card ${esc(source.status)}"><div class="health-card-top"><div class="health-source">${esc(source.name)}</div><span class="status-pill">${esc(source.status.replaceAll("_", " "))}</span></div><div class="health-meta">${esc(source.sourceFamily)} · ${esc(source.scope.boardKind.replaceAll("_", " "))}</div>${safeHref(source.url) ? `<a class="health-link" href="${safeHref(source.url)}" target="_blank" rel="noreferrer">Open career site</a>` : ""}<details><summary>Why this status?</summary><p>${esc(source.note)}</p></details></div>`);
   const runCards = runs.map((run) => {
     const report = run.healthReport ?? {};
@@ -152,28 +182,28 @@ async function load() {
   const healCards = healEvents.map((event) => `<div class="health-card ${event.approved === true ? "success" : event.approved === false ? "failed" : "live_scoped"}"><div class="health-source">HEAL REVIEW · ${esc(event.sourceId)}</div><div class="health-meta">${event.approved === null ? "awaiting approval" : event.approved ? "approved" : "rejected"} · ${esc(event.reason)} · collector ${esc(event.collectorId)}${event.repairedRunId ? ` · repaired run ${esc(event.repairedRunId)}` : ""}</div></div>`);
   health.innerHTML = `<div class="health-group"><div class="health-group-heading"><strong>Employer signals</strong><span>source readiness and public board links</span></div><div class="health-list">${cards.join("")}</div></div><div class="health-group"><div class="health-group-heading"><strong>Run status</strong><span>transport and extraction health only</span></div><div class="health-list">${[...runCards, ...lastKnownGoodCards, ...healCards, ...validationCards].join("") || `<div class="muted">No collector runs recorded yet.</div>`}</div></div>`;
   metrics.innerHTML = [
-    ["OBSERVATIONS", jobsData.length],
-    ["KNOWN SOURCE CONFIDENCE", renderConfidenceMetric(jobsData)],
-    ["INFORMATION ASYMMETRY", jobsData.filter((job) => job.analysis.gapLabel === "information asymmetry").length],
-    ["DATA MODE", jobsData.length ? "LIVE" : "NO LIVE DATA"],
+    ["OBSERVATIONS", sortedJobs.length],
+    ["KNOWN SOURCE CONFIDENCE", renderConfidenceMetric(sortedJobs)],
+    ["INFORMATION ASYMMETRY", sortedJobs.filter((job) => job.analysis.gapLabel === "information asymmetry").length],
+    ["DATA MODE", sortedJobs.length ? "LIVE" : "NO LIVE DATA"],
     ["ACTIVE SOURCES MONITORED", `${activeSources.length} (${boardSources.length} board · ${scopedSources.length} scoped)`],
     ["SOURCES WITH LIVE LISTINGS", liveSourceIds.size],
     ["ORACLE VALIDATION", validationResults.length ? `${validationResults.filter((result) => result.status === "agree").length}/${validationResults.length} agree` : "NOT RUN"],
   ].map(([label, value]) => `<div class="metric"><div class="metric-label">${label}</div><div class="metric-value">${esc(value)}</div></div>`).join("");
-  count.textContent = `${jobsData.length} recorded observations`;
-  const options = jobsData.map((job) => `<option value="${esc(job.observationId)}">${esc(job.title)} · ${esc(job.companyName)} · ${esc(job.location)}</option>`).join("");
+  count.textContent = `${sortedJobs.length} recorded observations · sorted by newest posted date`;
+  const options = sortedJobs.map((job) => `<option value="${esc(job.observationId)}">${esc(job.title)} · ${esc(job.companyName)} · ${esc(job.location)} · ${esc(postedDateLabel(job))}</option>`).join("");
   compareLeft.innerHTML = options;
   compareRight.innerHTML = options;
-  compareRun.disabled = jobsData.length < 2;
+  compareRun.disabled = sortedJobs.length < 2;
   compareRun.onclick = () => { void renderComparison(); };
-  if (jobsData.length > 1) {
+  if (sortedJobs.length > 1) {
     compareRight.selectedIndex = 1;
     void renderComparison();
   } else {
     compareResult.className = "compare-result empty";
-    compareResult.textContent = jobsData.length ? "Add another live observation to compare evidence." : "No live observations are available to compare yet.";
+    compareResult.textContent = sortedJobs.length ? "Add another live observation to compare evidence." : "No live observations are available to compare yet.";
   }
-  jobs.innerHTML = jobsData.length ? jobsData.map((job) => `<article class="job-card" data-id="${esc(job.observationId)}" tabindex="0" role="button" aria-label="View evidence for ${esc(job.title)} at ${esc(job.companyName)} in ${esc(job.location)}"><div class="job-top"><div><div class="job-title">${esc(job.title)}</div><div class="job-company">${esc(job.companyName)}</div><div class="job-meta">${esc(job.location)} · ${esc(job.dataMode).toUpperCase()} · source confidence ${confidenceLabel(job.sourceConfidence)}</div>${safeHref(job.url) ? `<a class="job-link" href="${safeHref(job.url)}" target="_blank" rel="noreferrer">Open listing ↗</a>` : `<span class="job-link job-link-missing">Listing link not observed</span>`}</div><div><div class="job-gap">${esc(job.analysis.gapLabel)}</div><div class="job-state">LIFECYCLE · ${esc(job.analysis.lifecycleState)}</div><div class="job-freshness">FRESHNESS · ${esc(job.analysis.freshness.precision)}</div></div></div></article>`).join("") : `<div class="empty-state"><strong>No verified live listings are available right now.</strong><span>The collectors are reachable, but no live rows are currently stored. Check the run status above or retry the dashboard.</span><button class="inline-retry" type="button">Retry</button></div>`;
+  jobs.innerHTML = sortedJobs.length ? sortedJobs.map((job) => `<article class="job-card" data-id="${esc(job.observationId)}" tabindex="0" role="button" aria-label="View evidence for ${esc(job.title)} at ${esc(job.companyName)} in ${esc(job.location)}"><div class="job-top"><div><div class="job-title">${esc(job.title)}</div><div class="job-company">${esc(job.companyName)}</div><div class="job-meta">${esc(job.location)} · ${esc(postedDateLabel(job))} · ${esc(job.dataMode).toUpperCase()} · source confidence ${confidenceLabel(job.sourceConfidence)}</div>${safeHref(job.url) ? `<a class="job-link" href="${safeHref(job.url)}" target="_blank" rel="noreferrer">Open listing ↗</a>` : `<span class="job-link job-link-missing">Listing link not observed</span>`}</div><div><div class="job-gap">${esc(job.analysis.gapLabel)}</div><div class="job-state">LIFECYCLE · ${esc(job.analysis.lifecycleState)}</div><div class="job-freshness">FRESHNESS · ${esc(job.analysis.freshness.precision)}</div></div></div></article>`).join("") : `<div class="empty-state"><strong>No verified live listings are available right now.</strong><span>The collectors are reachable, but no live rows are currently stored. Check the run status above or retry the dashboard.</span><button class="inline-retry" type="button">Retry</button></div>`;
   jobs.querySelector<HTMLButtonElement>(".inline-retry")?.addEventListener("click", () => { void load(); });
   jobs.querySelectorAll<HTMLElement>(".job-card").forEach((card) => {
     card.addEventListener("click", (event) => {
@@ -187,7 +217,27 @@ async function load() {
     });
     card.querySelectorAll("a").forEach((link) => link.addEventListener("click", (event) => event.stopPropagation()));
   });
-  if (jobsData.length) {
+  const applySort = () => {
+    const mode = jobSort.value as SortMode;
+    const sorted = sortJobsByMode(jobsData, mode);
+    const leftId = compareLeft.value;
+    const rightId = compareRight.value;
+    const cardsById = new Map([...jobs.querySelectorAll<HTMLElement>(".job-card")].map((card) => [card.dataset.id, card]));
+    for (const job of sorted) {
+      const card = cardsById.get(job.observationId);
+      if (card) jobs.append(card);
+    }
+    const sortedOptions = sorted.map((job) => `<option value="${esc(job.observationId)}">${esc(job.title)} · ${esc(job.companyName)} · ${esc(job.location)} · ${esc(postedDateLabel(job))}</option>`).join("");
+    compareLeft.innerHTML = sortedOptions;
+    compareRight.innerHTML = sortedOptions;
+    if (sorted.some((job) => job.observationId === leftId)) compareLeft.value = leftId;
+    if (sorted.some((job) => job.observationId === rightId)) compareRight.value = rightId;
+    if (compareLeft.value === compareRight.value && sorted.length > 1) compareRight.selectedIndex = 1;
+    const label = mode === "company-asc" ? "sorted by company name A–Z" : mode === "company-desc" ? "sorted by company name Z–A" : "sorted by newest posted date";
+    count.textContent = `${sorted.length} recorded observations · ${label}`;
+  };
+  jobSort.onchange = applySort;
+  if (sortedJobs.length) {
     detail.classList.add("empty");
     detail.innerHTML = `<p class="eyebrow">SELECT AN OBSERVATION</p><h2>Evidence appears here</h2><p>Choose a role to inspect disclosure, application burden, lifecycle changes, and source confidence.</p>`;
   }
@@ -198,10 +248,28 @@ async function load() {
     detail.innerHTML = `<p class="eyebrow">NO LIVE OBSERVATIONS</p><h2>Nothing verified to show yet</h2><p>${esc(lastRunText)} Review collector health above, then retry when a live run is available.</p>`;
   }
   setDashboardStatus("Live observations loaded", "ready");
+  void loadResearchQueue();
   } catch (error) {
     renderDashboardError(error);
   }
 }
+
+researchForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  researchMessage.className = "research-message";
+  researchMessage.textContent = "Adding link to the research queue…";
+  const url = researchUrl.value.trim();
+  try {
+    const response = await apiJson<{ duplicate: boolean; item: ResearchQueueItem }>("/api/research-queue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url }) });
+    researchMessage.className = "research-message success";
+    researchMessage.textContent = response.duplicate ? "This link is already in the research queue." : "Queued. It will be researched by the scheduled worker.";
+    researchUrl.value = "";
+    await loadResearchQueue();
+  } catch (error) {
+    researchMessage.className = "research-message error";
+    researchMessage.textContent = error instanceof Error ? error.message : "Could not queue this link.";
+  }
+});
 
 async function showDetail(id: string) {
   try {

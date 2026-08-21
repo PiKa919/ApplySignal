@@ -57,6 +57,7 @@ export function normalizeJobObservation(input: RawJobRow, context: Normalization
   const closing = dateValue(closingRaw);
   const sourceJobId = text(input.source_job_id ?? input.job_id ?? input.job_id_value);
   const title = text(input.title);
+  const companyName = text(input.company_name ?? input.company ?? input.employer);
   const location = text(input.location);
   const employmentType = text(input.employment_type);
   const description = text(input.description);
@@ -67,6 +68,7 @@ export function normalizeJobObservation(input: RawJobRow, context: Normalization
   const provenance: JobProvenance = {
     sourceJobId: provenanceFor(input.source_job_id ?? input.job_id ?? input.job_id_value),
     title: provenanceFor(input.title),
+    companyName: provenanceFor(input.company_name ?? input.company ?? input.employer),
     location: provenanceFor(input.location),
     employmentType: provenanceFor(input.employment_type),
     postedDate: posted.provenance,
@@ -88,6 +90,7 @@ export function normalizeJobObservation(input: RawJobRow, context: Normalization
     observedAt: context.observedAt,
     sourceJobId,
     title,
+    companyName,
     location,
     employmentType,
     postedDate: posted.value,

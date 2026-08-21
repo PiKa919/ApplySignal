@@ -1,6 +1,6 @@
 import { buildObservationAnalysis } from "./domain/analysis";
 import { diffObservations, inferPostingRelationship } from "./domain/lifecycle";
-import { listAnalysisSnapshots, listApplicationFields, listApplicationObservation, listHealEvents, listLatestObservations, listLineageEdges, listPostings, listPostingEvents, listScrapeRuns, listSources, listValidationResults } from "./storage/repository";
+import { enqueueResearchUrl, listAnalysisSnapshots, listApplicationFields, listApplicationObservation, listHealEvents, listLatestObservations, listLineageEdges, listPostings, listPostingEvents, listResearchQueue, listScrapeRuns, listSources, listValidationResults } from "./storage/repository";
 import type { Database } from "bun:sqlite";
 
 const json = (value: unknown, status = 200): Response => new Response(JSON.stringify(value), { status, headers: { "content-type": "application/json; charset=utf-8" } });
@@ -26,13 +26,33 @@ export function createAppServer(db: Database, options: AppServerOptions = {}) {
       const previous = historyFor(observation)[0] ?? null;
       return snapshotByObservation.get(observation.observationId) ?? buildObservationAnalysis(observation, previous, fieldsByObservation.get(observation.observationId) ?? []);
     };
-    const viewJob = (job: typeof jobs[number]) => ({ ...job, companyName: sourceNames.get(job.sourceId) ?? job.sourceId });
+    const viewJob = (job: typeof jobs[number]) => {
+      let submittedHost = "";
+      if (job.sourceId.startsWith("submitted_")) {
+        try { submittedHost = new URL(job.sourceUrl || job.url || "").hostname; } catch { submittedHost = ""; }
+      }
+      return { ...job, companyName: job.companyName ?? sourceNames.get(job.sourceId) ?? (submittedHost || job.sourceId) };
+    };
     return { jobs, jobsBySource, historyFor, analysisFor, snapshots, sourceCatalog, viewJob };
   };
 
   return {
     async fetch(request: Request): Promise<Response> {
       const url = new URL(request.url);
+      if (url.pathname === "/api/research-queue") {
+        if (request.method === "GET") return json(listResearchQueue(db));
+        if (request.method !== "POST") return json({ error: "method not allowed" }, 405);
+        let body: unknown;
+        try { body = await request.json(); } catch { return json({ error: "request body must be JSON" }, 400); }
+        const submittedUrl = typeof body === "object" && body !== null && "url" in body ? (body as { url: unknown }).url : null;
+        if (typeof submittedUrl !== "string") return json({ error: "url is required" }, 400);
+        try {
+          const queued = enqueueResearchUrl(db, submittedUrl);
+          return json(queued, queued.duplicate ? 200 : 201);
+        } catch (error) {
+          return json({ error: error instanceof Error ? error.message : String(error) }, 400);
+        }
+      }
       if (url.pathname === "/api/summary") {
         const context = createContext();
         const { jobs, snapshots, sourceCatalog, viewJob } = context;

@@ -12,6 +12,19 @@ test("summary endpoint exposes source confidence separately from job analysis", 
   expect(await response.json()).toMatchObject({ sourceConfidence: expect.any(Array), analyses: expect.any(Array) });
 });
 
+test("research queue API accepts, deduplicates, and lists URLs without running a collector", async () => {
+  const db = createDatabase(":memory:");
+  const app = createAppServer(db);
+  const first = await app.fetch(new Request("http://local/api/research-queue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://Example.com/jobs/123/#apply" }) }));
+  const duplicate = await app.fetch(new Request("http://local/api/research-queue", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ url: "https://example.com/jobs/123/" }) }));
+  const listed = await app.fetch(new Request("http://local/api/research-queue"));
+
+  expect(first.status).toBe(201);
+  expect(duplicate.status).toBe(200);
+  expect((await listed.json())).toHaveLength(1);
+  expect((await first.json()).item.status).toBe("pending");
+});
+
 test("production mode excludes fixture observations and adds the persisted employer name", async () => {
   const db = createDatabase(":memory:");
   saveObservation(db, { observationId: "live-job", sourceId: "zfh", title: "Backend Engineer", location: "Bengaluru", url: "https://careers.zerodhafundhouse.com/jobs/live-job", dataMode: "live", postedDateQuality: "unavailable", closingDateQuality: "unavailable", provenance: {}, sourceConfidence: 0.94 } as any);

@@ -30,6 +30,7 @@ jobs:
         run: |
           bun build src/index.ts --target bun --outdir /tmp/applysignal-root-build
           bun build src/cli/run-collector.ts --target bun --outdir /tmp/applysignal-collector-build
+          bun build src/cli/run-research-queue.ts --target bun --outdir /tmp/applysignal-research-build
 
       - name: Build hosted Docker image
         run: docker build --tag applysignal:ci .
