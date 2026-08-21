@@ -70,9 +70,18 @@
         <div class="section-heading"><div><p class="eyebrow">COLLECTOR HEALTH</p><h2>Trust the observation pipeline</h2></div><span class="muted">run status is separate from employer signals</span></div>
         <div id="health" class="health-list"></div>
       </section>
+      <section class="research-panel" aria-labelledby="research-heading">
+        <div class="section-heading"><div><p class="eyebrow">RESEARCH A JOB</p><h2 id="research-heading">Have a listing we don’t monitor?</h2></div><span class="muted">queued first · researched later</span></div>
+        <form id="research-form" class="research-form">
+          <label for="research-url">Public job-posting URL<input id="research-url" name="url" type="url" placeholder="https://careers.example.com/jobs/..." required /></label>
+          <button type="submit">Queue research</button>
+        </form>
+        <div id="research-message" class="research-message" role="status" aria-live="polite"></div>
+        <div id="research-queue" class="research-queue"></div>
+      </section>
       <section class="content-grid">
         <div>
-          <div class="section-heading"><div><p class="eyebrow">OBSERVATIONS</p><h2>Open roles, separate signals</h2></div><span id="count" class="muted"></span></div>
+          <div class="section-heading"><div><p class="eyebrow">OBSERVATIONS</p><h2>Open roles, separate signals</h2></div><div class="observation-controls"><label for="job-sort">Sort jobs<select id="job-sort"><option value="posted-desc">Newest posted date</option><option value="company-asc">Company name A–Z</option><option value="company-desc">Company name Z–A</option></select></label><span id="count" class="muted">Sorted by newest posted date</span></div></div>
           <div id="jobs" class="jobs"></div>
         </div>
         <aside id="detail" class="detail empty"><p class="eyebrow">SELECT AN OBSERVATION</p><h2>Evidence appears here</h2><p>Choose a role to inspect disclosure, application burden, lifecycle changes, and source confidence.</p></aside>

@@ -15,3 +15,11 @@ test("Render points at the live database shipped in the image", async () => {
   expect(renderYaml).toContain("value: /app/data/applysignal.db");
   expect(renderYaml).not.toContain("value: /tmp/applysignal.db");
 });
+
+test("scheduled research worker is bounded and authenticated separately", async () => {
+  const workflow = await readFile(new URL("../.github/workflows/research-queue.yml", import.meta.url), "utf8");
+  expect(workflow).toContain("schedule:");
+  expect(workflow).toContain("APPLYSIGNAL_RESEARCH_MAX_ITEMS: \"1\"");
+  expect(workflow).toContain("BRIGHTDATA_RESEARCH_COLLECTOR_ID");
+  expect(workflow).toContain("brightdata login --api-key");
+});

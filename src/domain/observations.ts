@@ -10,6 +10,9 @@ export interface RawJobRow {
   source_job_id?: string;
   job_id?: string;
   title?: string;
+  company_name?: string;
+  company?: string;
+  employer?: string;
   location?: string;
   employment_type?: string;
   posted_date?: string;
@@ -39,6 +42,7 @@ export interface JobObservation {
   observedAt: string;
   sourceJobId: string | null;
   title: string | null;
+  companyName: string | null;
   location: string | null;
   employmentType: string | null;
   postedDate: string | null;

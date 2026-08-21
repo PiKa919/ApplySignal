@@ -1,0 +1,56 @@
+name: ApplySignal research queue
+
+on:
+  schedule:
+    - cron: "17,47 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: applysignal-research-queue
+  cancel-in-progress: false
+
+jobs:
+  process-one:
+    runs-on: ubuntu-latest
+    environment: brightdata-paid
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.3.14
+
+      - name: Install dependencies
+        run: bun install --no-save
+
+      - name: Install Bright Data CLI
+        run: |
+          bun add --global @brightdata/cli
+          echo "$(bun pm bin -g)" >> "$GITHUB_PATH"
+          brightdata --version
+
+      - name: Authenticate Bright Data
+        env:
+          BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+        run: brightdata login --api-key "$BRIGHTDATA_API_KEY"
+
+      - name: Process at most one queued URL
+        env:
+          BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+          BRIGHTDATA_RESEARCH_COLLECTOR_ID: ${{ secrets.BRIGHTDATA_RESEARCH_COLLECTOR_ID }}
+          APPLYSIGNAL_DB: data/applysignal.db
+          APPLYSIGNAL_RESEARCH_MAX_ITEMS: "1"
+        run: bun run run:research-queue
+
+      - name: Publish queue and live observations
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/applysignal.db
+          git diff --cached --quiet || git commit -m "data: process ApplySignal research queue"
+          git push
