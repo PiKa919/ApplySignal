@@ -20,26 +20,41 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v4
 
+      - name: Check research worker configuration
+        env:
+          BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
+          BRIGHTDATA_RESEARCH_COLLECTOR_ID: ${{ secrets.BRIGHTDATA_RESEARCH_COLLECTOR_ID }}
+        run: |
+          if [ -z "$BRIGHTDATA_API_KEY" ] || [ -z "$BRIGHTDATA_RESEARCH_COLLECTOR_ID" ]; then
+            echo "BRIGHTDATA_API_KEY is not configured or BRIGHTDATA_RESEARCH_COLLECTOR_ID is missing; skipping scheduled research queue."
+            echo "SKIP_RESEARCH_QUEUE=true" >> "$GITHUB_ENV"
+          fi
+
       - name: Set up Bun
+        if: env.SKIP_RESEARCH_QUEUE != 'true'
         uses: oven-sh/setup-bun@v2
         with:
           bun-version: 1.3.14
 
       - name: Install dependencies
+        if: env.SKIP_RESEARCH_QUEUE != 'true'
         run: bun install --no-save
 
       - name: Install Bright Data CLI
+        if: env.SKIP_RESEARCH_QUEUE != 'true'
         run: |
           bun add --global @brightdata/cli
           echo "$(bun pm bin -g)" >> "$GITHUB_PATH"
           brightdata --version
 
       - name: Authenticate Bright Data
+        if: env.SKIP_RESEARCH_QUEUE != 'true'
         env:
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
         run: brightdata login --api-key "$BRIGHTDATA_API_KEY"
 
       - name: Process at most one queued URL
+        if: env.SKIP_RESEARCH_QUEUE != 'true'
         env:
           BRIGHTDATA_API_KEY: ${{ secrets.BRIGHTDATA_API_KEY }}
           BRIGHTDATA_RESEARCH_COLLECTOR_ID: ${{ secrets.BRIGHTDATA_RESEARCH_COLLECTOR_ID }}
@@ -48,6 +63,7 @@ jobs:
         run: bun run run:research-queue
 
       - name: Publish queue and live observations
+        if: env.SKIP_RESEARCH_QUEUE != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
